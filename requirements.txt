@@ -1,0 +1,13 @@
+# Basics
+numpy
+pandas
+matplotlib
+seaborn
+
+# Yahoo Finance
+requests
+yfinance
+
+# Delta Lake
+deltalake
+pyarrow
