@@ -11,3 +11,11 @@ yfinance
 # Delta Lake
 deltalake
 pyarrow
+delta-spark
+
+# DuckDB
+duckdb
+
+# Machine Learning
+tensorflow
+scikit-learn

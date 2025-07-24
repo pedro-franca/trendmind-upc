@@ -19,6 +19,8 @@ def load_financial_data(ticker):
     DELTA_OUTPUT_PATH = f"./data/{ticker}_yfinance"
     # Fetch data from Yahoo Finance
     df = yf.download(ticker, start="2020-01-01", end="2025-06-30")
+    df = df.droplevel('Ticker', axis=1)
+    df['ticker'] = ticker
     if df.empty:
         raise ValueError(f"No data found for ticker: {ticker}")
 
