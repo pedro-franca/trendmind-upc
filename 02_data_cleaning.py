@@ -5,9 +5,8 @@ from deltalake import DeltaTable
 from pymongo import MongoClient
 
 
-# --- Read yf from Delta Lake ---
-def read_yf_df(ticker):
-    delta_path = f"./data/{ticker}_yfinance"
+# --- Read df from Delta Lake ---
+def read_df(delta_path=None):
     dt = DeltaTable(delta_path)
     df = dt.to_pandas()
     return df
@@ -20,19 +19,17 @@ def clean_df(df):
     return df_cleaned
 
 # --- Write to DuckDB ---
-def export_to_duckdb(ticker):
-    yf_df = read_yf_df(ticker)
-    yf_df = clean_df(yf_df)
+def export_to_duckdb(delta_path=None, output_path=None):
+    df = read_df(delta_path)
+   # df = clean_df(df)
 
-    print(yf_df.head()) # Optional preview
+    print(df.head()) # Optional preview
 
-    output_yf_path = f"./data/{ticker}_yf_cleaned.duckdb"
-
-    # Export yf_df to DuckDB
-    con = duckdb.connect(database=output_yf_path, read_only=False)
-    con.execute("CREATE OR REPLACE TABLE stock_data AS SELECT * FROM yf_df")
+    # Export df to DuckDB
+    con = duckdb.connect(database=output_path, read_only=False)
+    con.execute("CREATE OR REPLACE TABLE stock_data AS SELECT * FROM df")
     con.close()
-    print(f"✅ Data exported to {output_yf_path}")
+    print(f"✅ Data exported to {output_path}")
 
 # --- Write news to MongoDB ---
 def export_news_to_mongodb(ticker):
@@ -61,8 +58,12 @@ def export_news_to_mongodb(ticker):
 if __name__ == "__main__":
     ticker = "ORCL"
     try:
-        export_to_duckdb(ticker)
-        print(f"✅ Data exported for {ticker}.")
+        export_to_duckdb(delta_path=f"./data/{ticker}_yfinance", output_path=f"./data/{ticker}_yf_clean.duckdb")
+        print(f"✅ yf Data exported for {ticker}.")
+        export_to_duckdb(delta_path=f"./data/{ticker}_10k", output_path=f"./data/{ticker}_10k_clean.duckdb")
+        print(f"✅ 10-K Data exported for {ticker}.")
+        export_to_duckdb(delta_path=f"./data/{ticker}_10q", output_path=f"./data/{ticker}_10q_clean.duckdb")
+        print(f"✅ 10-Q Data exported for {ticker}.")
         export_news_to_mongodb(ticker)
         print(f"✅ News exported for {ticker}.")
     except Exception as e:

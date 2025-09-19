@@ -22,3 +22,6 @@ scikit-learn
 
 # MongoDB
 pymongo
+
+# EDGAR
+edgartools

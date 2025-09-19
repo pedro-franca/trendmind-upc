@@ -6,7 +6,7 @@ from pymongo import MongoClient
 # --- L&T yf data from DuckDB ---
 def lt_yf_data(ticker, db_path=None):
     if db_path is None:
-        db_yf_path = f"./data/{ticker}_yf_cleaned.duckdb"
+        db_yf_path = f"./data/{ticker}_yf_clean.duckdb"
     
     con_yf = duckdb.connect(db_yf_path)
     yf_df = con_yf.execute("SELECT * FROM stock_data ORDER BY Date").df()
@@ -15,7 +15,8 @@ def lt_yf_data(ticker, db_path=None):
     yf_df['date'] = pd.to_datetime(yf_df['Date'])
     yf_df['date'] = yf_df['date'].dt.date
     yf_df = yf_df.drop(columns=['ticker'], errors='ignore')  # Drop ticker if exists
-
+ 
+ # TODO: techinal features - Edward Achong
     return yf_df
 
 # --- L&T news data from MongoDB ---
@@ -61,8 +62,21 @@ def lt_news_data(ticker):
          
     return sentiment_df
 
+def lt_sec_data(ticker, db_path=None):
+    
+    con_sec = duckdb.connect(db_path)
+    sec_df = con_sec.execute("SELECT * FROM stock_data").df()
+    con_sec.close()
+
+    sec_df = sec_df.drop('concept', axis=1).set_index('label').T
+    sec_df = sec_df.rename_axis('date')
+    sec_df.index = pd.to_datetime(sec_df.index)
+
+    print(sec_df.head())  # Optional preview
+
+    return sec_df
 
 
 if __name__ == "__main__":
     ticker = "ORCL"
-    lt_news_data(ticker)
+    lt_sec_data(ticker, db_path=f"./data/{ticker}_10k_clean.duckdb")
