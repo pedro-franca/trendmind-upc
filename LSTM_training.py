@@ -6,40 +6,7 @@ import ast
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
-
-    
-# --- Load data from DuckDB ---
-def load_transform_data(ticker, db_path=None):
-    low_ticker = ticker.lower()
-    if db_path is None:
-        db_yf_path = f"./data/{ticker}_yf_cleaned.duckdb"
-        db_news_path = f"./data/{ticker}_news_cleaned.duckdb"
-    
-    con_yf = duckdb.connect(db_yf_path)
-    yf_df = con_yf.execute("SELECT * FROM stock_data ORDER BY Date").df()
-    con_yf.close()
-
-    yf_df['date'] = pd.to_datetime(yf_df['Date'])
-    yf_df['date'] = yf_df['date'].dt.date
-    yf_df = yf_df.drop(columns=['ticker'], errors='ignore')  # Drop ticker if exists
-
-    con_news = duckdb.connect(db_news_path)
-    news_df = con_news.execute("SELECT * FROM news_data ORDER BY time_published").df()
-    con_news.close()
-
-    news_df['date'] = pd.to_datetime(news_df['time_published'],  format="%Y%m%dT%H%M%S")
-    news_df["date"] = news_df["date"].dt.date
-    news_df[f"{low_ticker}_sentiment_score"] = pd.to_numeric(news_df[f"{low_ticker}_sentiment_score"], errors='coerce')
-    news_df[f"{low_ticker}_relevance_score"] = pd.to_numeric(news_df[f"{low_ticker}_relevance_score"], errors='coerce')
-
-    sentiment_daily = news_df.groupby("date").apply(
-        lambda g: (g[f"{low_ticker}_sentiment_score"] * g[f"{low_ticker}_relevance_score"]).sum() / g[f"{low_ticker}_relevance_score"].sum()
-        ).reset_index(name="weighted_sentiment")
-
-    merged_df = pd.merge(yf_df, sentiment_daily, on="date", how="left")
-    merged_df["weighted_sentiment"].ffill(inplace=True)  # Forward fill missing sentiment values
-    
-    return merged_df
+from feature_engineering import load_transform_data
 
 # --- Preprocess data for LSTM ---
 def prepare_lstm_data(df, target_col='Close', sequence_length=60):
