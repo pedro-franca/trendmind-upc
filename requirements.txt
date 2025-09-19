@@ -19,3 +19,6 @@ duckdb
 # Machine Learning
 tensorflow
 scikit-learn
+
+# MongoDB
+pymongo
