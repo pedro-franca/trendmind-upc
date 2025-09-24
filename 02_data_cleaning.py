@@ -66,5 +66,7 @@ if __name__ == "__main__":
         print(f"✅ 10-Q Data exported for {ticker}.")
         export_news_to_mongodb(ticker)
         print(f"✅ News exported for {ticker}.")
+        export_to_duckdb(delta_path=f"./data/instruments", output_path=f"./data/instruments.duckdb")
+        print(f"✅ Instruments Data exported.")
     except Exception as e:
         print(f"❌ Error processing {ticker}: {e}")

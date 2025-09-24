@@ -1,3 +1,4 @@
+import pandas as pd
 import yfinance as yf
 import os
 from deltalake import DeltaTable
@@ -32,6 +33,22 @@ def load_yf_data(ticker):
 
     print(f"✅ Exported {len(df)} rows to {DELTA_OUTPUT_PATH}")
 
+def fetch_instruments():
+    DELTA_OUTPUT_PATH = f"./data/instruments"
+    df = pd.DataFrame()
+    tickers = ["CL=F", "GLD", "^BCOM", "DX-Y.NYB"]
+    for ticker in tickers:
+        data = yf.download(ticker, start="2020-01-01", end="2023-08-25", interval="1d")
+        data = data.droplevel('Ticker', axis=1)[['Close']]
+        data.rename(columns={'Close': ticker}, inplace=True)
+        df = pd.concat([df, data], axis=1)
+
+    df.columns = ['crude_oil','gold','commodity_index','usd_index']
+
+    os.makedirs(DELTA_OUTPUT_PATH, exist_ok=True)
+    write_deltalake(DELTA_OUTPUT_PATH, df, mode="overwrite")
+
+    print(f"✅ Exported {len(df)} rows to {DELTA_OUTPUT_PATH}")
 
 def load_10k_data(ticker):
     """
@@ -77,16 +94,19 @@ if __name__ == "__main__":
     ticker = "ORCL"
     try:
         load_yf_data(ticker)
+        fetch_instruments()
         load_10k_data(ticker)
         load_10q_data(ticker)
         yf_data = DeltaTable(f"./data/{ticker}_yfinance")
         ten_k_data = DeltaTable(f"./data/{ticker}_10k")
         ten_q_data = DeltaTable(f"./data/{ticker}_10q")
+        instruments_data = DeltaTable(f"./data/instruments")
 
         print(f"Data loaded for {ticker}:")
         print(yf_data.to_pandas().head())
         print(ten_k_data.to_pandas().head())
-        print(ten_q_data.to_pandas().head())    
+        print(ten_q_data.to_pandas().head())
+        print(instruments_data.to_pandas().head())
 
     except ValueError as e:
         print(e)
