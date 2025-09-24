@@ -73,23 +73,6 @@ def momentum_return(data, window=1, lag=1):
 
     return data
 
-def momentum_log_return(data, window=1, lag=1):
-    # log return: log(P_t / P_{t-window})
-    log_ret = np.log(data["Close"] / data["Close"].shift(window))
-
-    # shift the result to avoid lookahead bias
-    if lag:
-        log_ret = log_ret.shift(lag)
-
-    # add column with clear name
-    data[f"LogReturn_lag{lag}"] = log_ret
-
-            # make sure Date stays as index
-    if "Date" in data.columns:
-        data = data.set_index("Date")
-
-    return data
-
 ### Trend
 
 def trend_moving_average(data, window=5):
@@ -203,9 +186,9 @@ def join_tch_vars(df):
     data = momentum_stochasticK_oscillator(data, window=14)
     data = momentum_stochasticD_oscillator(data, window=14)
     data = momentum_return(data, window=1, lag=1)
-    data = momentum_log_return(data, window=1, lag=1)
     data = trend_moving_average(data, window=5)
     data = trend_sma_crossover(data, short_window=10, long_window=50)
+    data = trend_sma_crossover(data, short_window=50, long_window=200)
     data = trend_exponential_moving_average(data, window=10)
     data = trend_macd(data, short_window=12, long_window=26, signal_window=9)
     data = volume_accumulation_distribution_index(data, corr_window=14, corr_threshold=0.20)
