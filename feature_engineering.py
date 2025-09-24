@@ -4,16 +4,16 @@ import numpy as np
 from pymongo import MongoClient
 
 # --- L&T yf data from DuckDB ---
-def lt_yf_data(ticker, db_path=None):
-    if db_path is None:
-        db_yf_path = f"./data/{ticker}_yf_clean.duckdb"
-    
-    con_yf = duckdb.connect(db_yf_path)
-    yf_df = con_yf.execute("SELECT * FROM stock_data ORDER BY Date").df()
+def lt_yf_data(db_path):
+
+    table = db_path.split("/")[-1].replace(".duckdb", "")
+    con_yf = duckdb.connect(db_path)
+    yf_df = con_yf.execute(f"SELECT * FROM {table} ORDER BY Date").df()
     con_yf.close()
 
     yf_df['Date'] = pd.to_datetime(yf_df['Date'])
     yf_df['Date'] = yf_df['Date'].dt.date
+    yf_df = yf_df.set_index('Date').sort_index()
     yf_df = yf_df.drop(columns=['ticker'], errors='ignore')  # Drop ticker if exists
  
     return yf_df
@@ -242,27 +242,30 @@ def lt_news_data(ticker):
         'ticker_sentiment_score': 'orcl_sentiment_score'
     })
 
-    news_df['date'] = pd.to_datetime(news_df['time_published'],  format="%Y%m%dT%H%M%S")
-    news_df["date"] = news_df["date"].dt.date
+    news_df['Date'] = pd.to_datetime(news_df['time_published'],  format="%Y%m%dT%H%M%S")
+    news_df["Date"] = news_df["Date"].dt.date
     news_df[f"{low_ticker}_sentiment_score"] = pd.to_numeric(news_df[f"{low_ticker}_sentiment_score"], errors='coerce')
     news_df[f"{low_ticker}_relevance_score"] = pd.to_numeric(news_df[f"{low_ticker}_relevance_score"], errors='coerce')
 
-    sentiment_df = news_df.groupby("date").apply(
+    sentiment_df = news_df.groupby("Date").apply(
         lambda g: (g[f"{low_ticker}_sentiment_score"] * g[f"{low_ticker}_relevance_score"]).sum() / g[f"{low_ticker}_relevance_score"].sum()
         ).reset_index(name="weighted_sentiment")
+    
+    sentiment_df = sentiment_df.set_index('Date').sort_index()
     
     print(sentiment_df.head())  # Optional preview
          
     return sentiment_df
 
-def lt_sec_data(ticker, db_path=None):
+def lt_sec_data(db_path):
     
+    table = db_path.split("/")[-1].replace(".duckdb", "")
     con_sec = duckdb.connect(db_path)
-    sec_df = con_sec.execute("SELECT * FROM stock_data").df()
+    sec_df = con_sec.execute(f"SELECT * FROM {table}").df()
     con_sec.close()
 
     sec_df = sec_df.drop('concept', axis=1).set_index('label').T
-    sec_df = sec_df.rename_axis('date')
+    sec_df = sec_df.rename_axis('Date')
     sec_df.index = pd.to_datetime(sec_df.index)
 
     print(sec_df.head())  # Optional preview
@@ -273,7 +276,7 @@ def lt_sec_data(ticker, db_path=None):
 if __name__ == "__main__":
     ticker = "ORCL"
     try:
-        df = lt_yf_data(ticker)
+        df = lt_yf_data(db_path=f"./data/{ticker}_yf.duckdb")
         print(f"✅ Data loaded and transformed for {ticker}.")
         print(df.head())  # Optional preview
         df = join_tch_vars(df)

@@ -24,10 +24,10 @@ def export_to_duckdb(delta_path=None, output_path=None):
    # df = clean_df(df)
 
     print(df.head()) # Optional preview
-
+    table = delta_path.split("/")[-1].replace(".delta", "")
     # Export df to DuckDB
     con = duckdb.connect(database=output_path, read_only=False)
-    con.execute("CREATE OR REPLACE TABLE stock_data AS SELECT * FROM df")
+    con.execute(f"CREATE OR REPLACE TABLE {table} AS SELECT * FROM df")
     con.close()
     print(f"✅ Data exported to {output_path}")
 
@@ -58,11 +58,11 @@ def export_news_to_mongodb(ticker):
 if __name__ == "__main__":
     ticker = "ORCL"
     try:
-        export_to_duckdb(delta_path=f"./data/{ticker}_yfinance", output_path=f"./data/{ticker}_yf_clean.duckdb")
+        export_to_duckdb(delta_path=f"./data/{ticker}_yf", output_path=f"./data/{ticker}_yf.duckdb")
         print(f"✅ yf Data exported for {ticker}.")
-        export_to_duckdb(delta_path=f"./data/{ticker}_10k", output_path=f"./data/{ticker}_10k_clean.duckdb")
+        export_to_duckdb(delta_path=f"./data/{ticker}_10k", output_path=f"./data/{ticker}_10k.duckdb")
         print(f"✅ 10-K Data exported for {ticker}.")
-        export_to_duckdb(delta_path=f"./data/{ticker}_10q", output_path=f"./data/{ticker}_10q_clean.duckdb")
+        export_to_duckdb(delta_path=f"./data/{ticker}_10q", output_path=f"./data/{ticker}_10q.duckdb")
         print(f"✅ 10-Q Data exported for {ticker}.")
         export_news_to_mongodb(ticker)
         print(f"✅ News exported for {ticker}.")

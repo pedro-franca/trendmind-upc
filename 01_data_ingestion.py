@@ -20,9 +20,9 @@ def load_yf_data(ticker):
     Returns:
         pd.DataFrame: DataFrame containing financial data.
     """
-    DELTA_OUTPUT_PATH = f"./data/{ticker}_yfinance"
+    DELTA_OUTPUT_PATH = f"./data/{ticker}_yf"
     # Fetch data from Yahoo Finance
-    df = yf.download(ticker, start="2020-01-01", end="2023-08-25")
+    df = yf.download(ticker, start="2020-01-01", end="2025-08-23", interval="1d")
     df = df.droplevel('Ticker', axis=1)
     df['ticker'] = ticker
     if df.empty:
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         fetch_instruments()
         load_10k_data(ticker)
         load_10q_data(ticker)
-        yf_data = DeltaTable(f"./data/{ticker}_yfinance")
+        yf_data = DeltaTable(f"./data/{ticker}_yf")
         ten_k_data = DeltaTable(f"./data/{ticker}_10k")
         ten_q_data = DeltaTable(f"./data/{ticker}_10q")
         instruments_data = DeltaTable(f"./data/instruments")
