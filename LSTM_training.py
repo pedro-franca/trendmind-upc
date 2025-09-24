@@ -82,9 +82,12 @@ def train_test_lstm(ticker, sequence_length=60, test_size=0.2):
     mse = mean_squared_error(y_test_rescaled, y_pred_rescaled)
     mae = mean_absolute_error(y_test_rescaled, y_pred_rescaled)
     r2 = r2_score(y_test_rescaled, y_pred_rescaled)
+    mape = np.mean(np.abs((y_test_rescaled - y_pred_rescaled) / y_test_rescaled)) * 100
+
 
     print(f"MSE: {mse:.4f}")
     print(f"MAE: {mae:.4f}")
+    print(f"MAPE: {mape:.2f}%")
     print(f"R²: {r2:.4f}")
 
     # Plot predictions vs actual
