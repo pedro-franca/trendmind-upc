@@ -5,12 +5,13 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
-from feature_selection import create_df, select_features
+from feature_selection import select_features
+from feature_engineering import create_df
 
 # --- Load and transform data ---
-def load_transform_data(ticker):
+def load_transform_data(ticker, target_col='Close', threshold=0.6):
     df = create_df(ticker)
-    df = select_features(df, target_col='Close', threshold=0.6)
+    df = select_features(df, target_col=target_col, threshold=threshold)
     df = df.ffill().dropna()
     return df
 
@@ -54,13 +55,13 @@ def train_lstm(ticker):
 
 
 # --- Train/test split + evaluation ---
-def train_test_lstm(ticker, sequence_length=60, test_size=0.2):
+def train_test_lstm(ticker, sequence_length=60, test_size=0.2, threshold=0.6, target_col='Close'):
     # Load + preprocess
-    df = load_transform_data(ticker)
+    df = load_transform_data(ticker, target_col=target_col, threshold=threshold)
     if 'Close' not in df.columns:
         raise ValueError("Expected 'Close' column in data.")
-    
-    X, y, scaler = prepare_lstm_data(df, target_col='Close', sequence_length=sequence_length)
+
+    X, y, scaler = prepare_lstm_data(df, target_col=target_col, sequence_length=sequence_length)
 
     # Train/test split
     split_idx = int(len(X) * (1 - test_size))
@@ -104,7 +105,7 @@ def train_test_lstm(ticker, sequence_length=60, test_size=0.2):
 if __name__ == "__main__":
     ticker = "ORCL"
     try:
-        model, scaler, metrics = train_test_lstm(ticker)
+        model, scaler, metrics = train_test_lstm(ticker, threshold=0.6, target_col='Close')
         print(f"✅ Done training & evaluating for {ticker}")
     except Exception as e:
         print(f"❌ Error: {e}")

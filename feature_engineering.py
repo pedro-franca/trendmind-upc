@@ -1,22 +1,23 @@
 import duckdb
 import pandas as pd
 import numpy as np
+import os
 from pymongo import MongoClient
 
-# --- L&T yf data from DuckDB ---
-def lt_yf_data(db_path):
+# --- Load data from DuckDB ---
+def load_data(db_path):
 
     table = db_path.split("/")[-1].replace(".duckdb", "")
-    con_yf = duckdb.connect(db_path)
-    yf_df = con_yf.execute(f"SELECT * FROM {table} ORDER BY Date").df()
-    con_yf.close()
+    con = duckdb.connect(db_path)
+    df = con.execute(f"SELECT * FROM {table} ORDER BY Date").df()
+    con.close()
 
-    yf_df['Date'] = pd.to_datetime(yf_df['Date'])
-    yf_df['Date'] = yf_df['Date'].dt.date
-    yf_df = yf_df.set_index('Date').sort_index()
-    yf_df = yf_df.drop(columns=['ticker'], errors='ignore')  # Drop ticker if exists
- 
-    return yf_df
+    df['Date'] = pd.to_datetime(df['Date'])
+    df['Date'] = df['Date'].dt.date
+    df = df.set_index('Date').sort_index()
+    df = df.drop(columns=['ticker'], errors='ignore')  # Drop ticker if exists
+
+    return df
 
 ####### Advanced Technical Financial Variables #######
 ### Momentum
@@ -221,8 +222,8 @@ def lt_news_data(ticker):
         'ticker_sentiment_score',
         'time_published'
     ]].rename(columns={
-        'relevance_score': 'orcl_relevance_score',
-        'ticker_sentiment_score': 'orcl_sentiment_score'
+        'relevance_score': f"{low_ticker}_relevance_score",
+        'ticker_sentiment_score': f"{low_ticker}_sentiment_score"
     })
 
     news_df['Date'] = pd.to_datetime(news_df['time_published'],  format="%Y%m%dT%H%M%S")
@@ -241,29 +242,75 @@ def lt_news_data(ticker):
     return sentiment_df
 
 def lt_sec_data(db_path):
+    if os.path.exists(db_path):
     
-    table = db_path.split("/")[-1].replace(".duckdb", "")
-    con_sec = duckdb.connect(db_path)
-    sec_df = con_sec.execute(f"SELECT * FROM {table}").df()
-    con_sec.close()
+        table = db_path.split("/")[-1].replace(".duckdb", "")
 
-    sec_df = sec_df.drop('concept', axis=1).set_index('label').T
-    sec_df = sec_df.rename_axis('Date')
-    sec_df.index = pd.to_datetime(sec_df.index)
+        con_sec = duckdb.connect(db_path)
+        sec_df = con_sec.execute(f"SELECT * FROM {table}").df()
+        con_sec.close()
+
+        sec_df = sec_df.drop('concept', axis=1).set_index('label').T
+        sec_df = sec_df.rename_axis('Date')
+        sec_df.index = pd.to_datetime(sec_df.index)
+
+    else:
+        print(f"Warning: Delta path {db_path} does not exist.")
+        sec_df = pd.DataFrame() 
 
     print(sec_df.head())  # Optional preview
 
     return sec_df
 
+def lt_treasury_data(db_path="./data/treasury_yield.duckdb"):
+    df = load_data(db_path)
+    df["term_spread"]    = df["10y"] - df["3m"]  # 10Y - 3M
+    df["default_spread"] = df["10y"] - df["5y"]  # 10Y - 5Y
+    return df
+
+def create_df(ticker):
+    df = load_data(db_path=f"./data/{ticker}_yf.duckdb")
+    df = join_tch_vars(df)
+    print(df.head())  # Optional preview
+
+    sec_10q_df = lt_sec_data(db_path=f"./data/{ticker}_10q.duckdb")
+    sec_10k_df = lt_sec_data(db_path=f"./data/{ticker}_10k.duckdb")
+    sec_10k_df = sec_10k_df.add_suffix('_10k')
+    sec_df = pd.concat([sec_10q_df, sec_10k_df]).drop_duplicates().sort_index()
+    print(sec_df.head())  # Optional preview
+
+    news_df = lt_news_data(ticker)
+
+    instruments_df = load_data(db_path=f"./data/instruments.duckdb")
+    print(instruments_df.head())  # Optional preview
+
+    d_market_df = load_data(db_path=f"./data/{ticker}_daily_market.duckdb")
+    print(d_market_df.head())  # Optional preview
+
+    q_fund_df = load_data(db_path=f"./data/{ticker}_quarterly_fundamentals.duckdb")
+    print(q_fund_df.head())  # Optional preview
+
+    treasury_df = lt_treasury_data(db_path="./data/treasury_yields.duckdb")
+    print(treasury_df.head())  # Optional preview
+
+    # Merge all dataframes on date
+    if not sec_df.empty:
+        df = df.merge(sec_df, how='left', left_index=True, right_index=True)
+    df = df.merge(news_df, how='left', left_index=True, right_index=True)
+    df = df.merge(instruments_df, how='left', left_index=True, right_index=True)
+    df = df.merge(d_market_df, how='left', left_index=True, right_index=True)
+    df = df.merge(q_fund_df, how='left', left_index=True, right_index=True)
+    df = df.merge(treasury_df, how='left', left_index=True, right_index=True)
+    df = df.ffill()
+
+    if 'weighted_sentiment' in df.columns:
+        df = df.dropna(subset=['weighted_sentiment'])
+
+    # df = df.drop(columns=['Open','High','Low','Volume'], errors='ignore')
+    print(df.shape)
+    return df
 
 if __name__ == "__main__":
     ticker = "ORCL"
-    try:
-        df = lt_yf_data(db_path=f"./data/{ticker}_yf.duckdb")
-        print(f"✅ Data loaded and transformed for {ticker}.")
-        print(df.head())  # Optional preview
-        df = join_tch_vars(df)
-        print(f"✅ Technical variables added for {ticker}.")
-        print(df.head())  # Optional preview
-    except Exception as e:
-        print(f"❌ Error loading data for {ticker}: {e}")
+    df = create_df(ticker)
+    print(df.head())
