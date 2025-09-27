@@ -20,16 +20,9 @@ def main(ticker):
     dc.export_to_duckdb(delta_path=f"./data/{ticker}_10q", output_path=f"./data/{ticker}_10q.duckdb")
     dc.export_to_duckdb(delta_path=f"./data/{ticker}_daily_market", output_path=f"./data/{ticker}_daily_market.duckdb")
     dc.export_to_duckdb(delta_path=f"./data/{ticker}_quarterly_fundamentals", output_path=f"./data/{ticker}_quarterly_fundamentals.duckdb")
-   # dc.export_to_duckdb(delta_path=f"./data/instruments", output_path=f"./data/instruments.duckdb")
     dc.export_news_to_mongodb(ticker)
-    
-    # 3. Feature engineering
-    #df = fe.create_df(ticker)
 
-    # 4. Feature selection
-    #df_selected = fs.select_features(df, target_col='Close', threshold=0.6)
-
-    # 5. Train model
+    # 3. Train model
     model, scaler, metrics = train_test_lstm(ticker, threshold=0.6, target_col='Close')
     print("Model training completed with metrics:", metrics)
 

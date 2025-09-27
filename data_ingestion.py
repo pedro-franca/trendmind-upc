@@ -73,8 +73,7 @@ def fetch_treasury_yields():
 
     print(f"✅ Exported {len(df)} rows to {DELTA_OUTPUT_PATH}")
 
-def fetch_fred(start="2020-01-01", end="2025-08-23", retries=4):
-
+def fetch_fred_daily(start="2020-01-01", end="2025-08-23", retries=4):
     BASE_URL = "https://api.stlouisfed.org/fred/series/observations"
     data = pd.DataFrame()
     for series_id in ["DBAA", "DAAA","DGS10"]:
@@ -100,9 +99,12 @@ def fetch_fred(start="2020-01-01", end="2025-08-23", retries=4):
                     raise
                 time.sleep(2 ** i)  # Exponential backoff
         data = pd.concat([data, df], axis=1)
+    data = data.reset_index().rename(columns={"index": "Date"})
 
-    print(data.head())  # Optional preview
-    return data
+    DELTA_OUTPUT_PATH = f"./data/fred_daily"
+    os.makedirs(DELTA_OUTPUT_PATH, exist_ok=True)
+    write_deltalake(DELTA_OUTPUT_PATH, data, mode="overwrite")
+    print(f"✅ Exported {len(data)} rows to {DELTA_OUTPUT_PATH}")
 
 
 # --- Fetch and store data functions ---
@@ -215,4 +217,4 @@ def get_daily_market_data(ticker: str, since="2000-01-01"):
     print(f"✅ Exported {len(df)} rows to {DELTA_OUTPUT_PATH}")
 
 if __name__ == "__main__":
-    fetch_fred()
+    fetch_fred_daily()

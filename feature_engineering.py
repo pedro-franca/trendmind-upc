@@ -9,9 +9,10 @@ def load_data(db_path):
 
     table = db_path.split("/")[-1].replace(".duckdb", "")
     con = duckdb.connect(db_path)
-    df = con.execute(f"SELECT * FROM {table} ORDER BY Date").df()
+    df = con.execute(f"SELECT * FROM {table}").df()
     con.close()
 
+    print(df.head())  # Optional preview
     df['Date'] = pd.to_datetime(df['Date'])
     df['Date'] = df['Date'].dt.date
     df = df.set_index('Date').sort_index()
@@ -195,7 +196,6 @@ def join_tch_vars(df):
     data = volume_accumulation_distribution_index(data, corr_window=14, corr_threshold=0.20)
     return data
 
-
 # --- L&T news data from MongoDB ---
 def lt_news_data(ticker):
     low_ticker = ticker.lower()
@@ -268,6 +268,12 @@ def lt_treasury_data(db_path="./data/treasury_yield.duckdb"):
     df["default_spread"] = df["10y"] - df["5y"]  # 10Y - 5Y
     return df
 
+def lt_fred_daily_data(db_path="./data/fred_daily.duckdb"):
+    df = load_data(db_path)
+    df["spread_baa_aaa"] = df["DBAA"]  - df["DAAA"]
+    df["spread_baa_10y"] = df["DBAA"]  - df["DGS10"]
+    return df
+
 def create_df(ticker):
     df = load_data(db_path=f"./data/{ticker}_yf.duckdb")
     df = join_tch_vars(df)
@@ -293,6 +299,9 @@ def create_df(ticker):
     treasury_df = lt_treasury_data(db_path="./data/treasury_yields.duckdb")
     print(treasury_df.head())  # Optional preview
 
+    fred_daily_df = lt_fred_daily_data(db_path="./data/fred_daily.duckdb")
+    print(fred_daily_df.head())  # Optional preview
+
     # Merge all dataframes on date
     if not sec_df.empty:
         df = df.merge(sec_df, how='left', left_index=True, right_index=True)
@@ -301,6 +310,7 @@ def create_df(ticker):
     df = df.merge(d_market_df, how='left', left_index=True, right_index=True)
     df = df.merge(q_fund_df, how='left', left_index=True, right_index=True)
     df = df.merge(treasury_df, how='left', left_index=True, right_index=True)
+    df = df.merge(fred_daily_df, how='left', left_index=True, right_index=True)
     df = df.ffill()
 
     if 'weighted_sentiment' in df.columns:
@@ -310,7 +320,3 @@ def create_df(ticker):
     print(df.shape)
     return df
 
-if __name__ == "__main__":
-    ticker = "ORCL"
-    df = create_df(ticker)
-    print(df.head())

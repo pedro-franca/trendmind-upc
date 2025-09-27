@@ -1,0 +1,114 @@
+[
+  {
+    "title": "Epic Games Is Now 'Financially Sound,' Says CEO Tim Sweeney After Major Layoffs - Tencent Holdings  ( OTC:TCEHY ) ",
+    "url": "https://www.benzinga.com/general/gaming/24/10/41151404/epic-games-is-now-financially-sound-says-ceo-tim-sweeney-after-major-layoffs",
+    "time_published": "20241002T203843",
+    "authors": [
+      "Franca Quarneti"
+    ],
+    "summary": "Epic Games CEO Tim Sweeney declared the company \"financially sound\" during a presentation at Unreal Fest 2024. This statement comes after a tumultuous period marked by significant layoffs and strategic divestitures.",
+    "banner_image": "https://cdn.benzinga.com/files/images/story/2024/10/02/West-Bangal--India---April-20--2022--Epi.jpeg?width=1200&height=800&fit=crop",
+    "source": "Benzinga",
+    "category_within_source": "General",
+    "source_domain": "www.benzinga.com",
+    "topics": [
+      {
+        "topic": "Mergers & Acquisitions",
+        "relevance_score": "0.158519"
+      },
+      {
+        "topic": "Technology",
+        "relevance_score": "1.0"
+      }
+    ],
+    "overall_sentiment_score": 0.193934,
+    "overall_sentiment_label": "Somewhat-Bullish",
+    "ticker_sentiment": [
+      {
+        "ticker": "SSNLF",
+        "relevance_score": "0.087503",
+        "ticker_sentiment_score": "0.012554",
+        "ticker_sentiment_label": "Neutral"
+      },
+      {
+        "ticker": "TCEHY",
+        "relevance_score": "0.173958",
+        "ticker_sentiment_score": "0.05289",
+        "ticker_sentiment_label": "Neutral"
+      },
+      {
+        "ticker": "GOOG",
+        "relevance_score": "0.173958",
+        "ticker_sentiment_score": "0.002942",
+        "ticker_sentiment_label": "Neutral"
+      },
+      {
+        "ticker": "TCTZF",
+        "relevance_score": "0.087503",
+        "ticker_sentiment_score": "0.039072",
+        "ticker_sentiment_label": "Neutral"
+      }
+    ]
+  },
+  {
+    "title": "Audit breakthrough fails to lure investors into China ADRs",
+    "url": "https://www.reuters.com/markets/asia/audit-breakthrough-fails-lure-investors-into-china-adrs-2022-09-29/",
+    "time_published": "20220929T021100",
+    "authors": [
+      "Summer Zhen"
+    ],
+    "summary": "Audit breakthrough fails to lure investors into China ...",
+    "banner_image": "https://cloudfront-us-east-2.images.arcpublishing.com/reuters/STIMQBVUW5PU7BY2YU7TYER5UM.jpg",
+    "source": "Reuters",
+    "category_within_source": "Markets",
+    "source_domain": "www.reuters.com",
+    "topics": [
+      {
+        "topic": "Economy - Monetary",
+        "relevance_score": "0.158519"
+      },
+      {
+        "topic": "Finance",
+        "relevance_score": "1.0"
+      },
+      {
+        "topic": "Financial Markets",
+        "relevance_score": "0.538269"
+      }
+    ],
+    "overall_sentiment_score": -0.026917,
+    "overall_sentiment_label": "Neutral",
+    "ticker_sentiment": [
+      {
+        "ticker": "BABA",
+        "relevance_score": "0.252987",
+        "ticker_sentiment_score": "0.196124",
+        "ticker_sentiment_label": "Somewhat-Bullish"
+      },
+      {
+        "ticker": "TCEHY",
+        "relevance_score": "0.085629",
+        "ticker_sentiment_score": "-0.060496",
+        "ticker_sentiment_label": "Neutral"
+      },
+      {
+        "ticker": "SZIHF",
+        "relevance_score": "0.085629",
+        "ticker_sentiment_score": "-0.060496",
+        "ticker_sentiment_label": "Neutral"
+      },
+      {
+        "ticker": "MS",
+        "relevance_score": "0.085629",
+        "ticker_sentiment_score": "-0.077982",
+        "ticker_sentiment_label": "Neutral"
+      },
+      {
+        "ticker": "TCTZF",
+        "relevance_score": "0.085629",
+        "ticker_sentiment_score": "-0.060496",
+        "ticker_sentiment_label": "Neutral"
+      }
+    ]
+  }
+]
