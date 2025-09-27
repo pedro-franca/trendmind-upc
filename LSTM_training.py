@@ -1,4 +1,5 @@
 # LSTM_training.py
+import pandas as pd
 import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import matplotlib.pyplot as plt
@@ -13,6 +14,8 @@ def load_transform_data(ticker, target_col='Close', threshold=0.6):
     df = create_df(ticker)
     df = select_features(df, target_col=target_col, threshold=threshold)
     df = df.ffill().dropna()
+    df.sort_index(inplace=True)
+    print(df.head())  # Optional preview
     return df
 
 # --- Preprocess data for LSTM ---
@@ -55,13 +58,17 @@ def train_lstm(ticker):
 
 
 # --- Train/test split + evaluation ---
-def train_test_lstm(ticker, sequence_length=60, test_size=0.2, threshold=0.6, target_col='Close'):
+def train_test_lstm(ticker, sequence_length=60, test_date="2025-03-01", threshold=0.6, target_col='Close'):
     # Load + preprocess
     df = load_transform_data(ticker, target_col=target_col, threshold=threshold)
+    df.index = pd.to_datetime(df.index)
     if 'Close' not in df.columns:
         raise ValueError("Expected 'Close' column in data.")
 
     X, y, scaler = prepare_lstm_data(df, target_col=target_col, sequence_length=sequence_length)
+
+    test_size = (df.index >= test_date).sum() / len(df)
+    print(f"Test size: {test_size:.2%}")
 
     # Train/test split
     split_idx = int(len(X) * (1 - test_size))
@@ -97,16 +104,12 @@ def train_test_lstm(ticker, sequence_length=60, test_size=0.2, threshold=0.6, ta
     plt.plot(y_pred_rescaled, label="Predicted")
     plt.legend()
     plt.title(f"{ticker} - LSTM Predictions vs Actual")
-    plt.show()
+    # plt.show()
 
-    return model, scaler, (mse, mae, r2)
+    return y_pred_rescaled, model, scaler, (mse, mae, r2)
 
-# --- Main ---
+
 if __name__ == "__main__":
-    ticker = "ORCL"
-    try:
-        model, scaler, metrics = train_test_lstm(ticker, threshold=0.6, target_col='Close')
-        print(f"✅ Done training & evaluating for {ticker}")
-    except Exception as e:
-        print(f"❌ Error: {e}")
-
+    ticker = "TCEHY"
+    df = load_transform_data(ticker, target_col='Close', threshold=0.6)
+    print(df.index)

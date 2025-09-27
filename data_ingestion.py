@@ -190,11 +190,14 @@ def get_quarterly_fundamentals(ticker: str, since="2000-01-01"):
     df = df.reset_index(drop=True)
     df = df.drop(columns=["reportperiod"]).rename(columns={"calendardate": "Date"})
     df = df.dropna(axis=1, how="all")
-    DELTA_OUTPUT_PATH = f"./data/{ticker}_quarterly_fundamentals"
-    os.makedirs(DELTA_OUTPUT_PATH, exist_ok=True)
-    write_deltalake(DELTA_OUTPUT_PATH, df, mode="overwrite")
+    if df.empty:
+        print(f"No quarterly fundamentals found for ticker: {ticker}")
+    else:
+        DELTA_OUTPUT_PATH = f"./data/{ticker}_quarterly_fundamentals"
+        os.makedirs(DELTA_OUTPUT_PATH, exist_ok=True)
+        write_deltalake(DELTA_OUTPUT_PATH, df, mode="overwrite")
 
-    print(f"✅ Exported {len(df)} rows to {DELTA_OUTPUT_PATH}")
+        print(f"✅ Exported {len(df)} rows to {DELTA_OUTPUT_PATH}")
 
 def get_daily_market_data(ticker: str, since="2000-01-01"):
     if ticker == "GOOG":
@@ -210,11 +213,12 @@ def get_daily_market_data(ticker: str, since="2000-01-01"):
     )
     df = df.reset_index(drop=True)
     df = df.dropna(axis=1, how="all")
-    DELTA_OUTPUT_PATH = f"./data/{ticker}_daily_market"
-    os.makedirs(DELTA_OUTPUT_PATH, exist_ok=True)
-    write_deltalake(DELTA_OUTPUT_PATH, df, mode="overwrite")
+    if df.empty:
+        print(f"No daily market data found for ticker: {ticker}")
+    else:
+        DELTA_OUTPUT_PATH = f"./data/{ticker}_daily_market"
+        os.makedirs(DELTA_OUTPUT_PATH, exist_ok=True)
+        write_deltalake(DELTA_OUTPUT_PATH, df, mode="overwrite")
 
-    print(f"✅ Exported {len(df)} rows to {DELTA_OUTPUT_PATH}")
+        print(f"✅ Exported {len(df)} rows to {DELTA_OUTPUT_PATH}")
 
-if __name__ == "__main__":
-    fetch_fred_daily()

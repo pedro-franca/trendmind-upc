@@ -1,3 +1,4 @@
+import pandas as pd
 import data_ingestion as di
 from deltalake import DeltaTable
 import data_cleaning as dc
@@ -6,7 +7,7 @@ import feature_selection as fs
 from LSTM_training import train_test_lstm
 
 
-def main(ticker):
+def train_new_ticker(ticker):
     # 1. Load raw data
     di.get_yf_data(ticker)
     di.get_10k_data(ticker)
@@ -23,12 +24,21 @@ def main(ticker):
     dc.export_news_to_mongodb(ticker)
 
     # 3. Train model
-    model, scaler, metrics = train_test_lstm(ticker, threshold=0.6, target_col='Close')
+    y_pred_rescaled, model, scaler, metrics = train_test_lstm(ticker, threshold=0.6, target_col='Close')
     print("Model training completed with metrics:", metrics)
 
+def main():
+    df = pd.DataFrame()
+    tickers = ["AAPL", "MSFT", "GOOG", "META", "NVDA", "TCEHY", "ORCL", "AVGO", "TSM"]
+    for ticker in tickers:
+        print(f"--- Training for {ticker} ---")
+        y_pred_rescaled, model, scaler, metrics = train_test_lstm(ticker, threshold=0.6, target_col='Close')
+        data = pd.DataFrame(y_pred_rescaled, columns=[f"{ticker}_Predicted_Close"])
+        df = pd.concat([df, data], axis=1)
+    return df
+
+
 if __name__ == "__main__":
-    ticker = "ORCL"
-    try:
-        main(ticker)
-    except Exception as e:
-        print(f"Error occurred: {e}")
+    df = main()
+    print(df.head())
+    print("Training completed for all tickers.")

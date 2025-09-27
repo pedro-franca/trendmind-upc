@@ -6,17 +6,20 @@ from pymongo import MongoClient
 
 # --- Load data from DuckDB ---
 def load_data(db_path):
+    if not os.path.exists(db_path):
+        print(f"Warning: Delta path {db_path} does not exist.")
+        df = pd.DataFrame() 
+    else:
+        table = db_path.split("/")[-1].replace(".duckdb", "")
+        con = duckdb.connect(db_path)
+        df = con.execute(f"SELECT * FROM {table}").df()
+        con.close()
 
-    table = db_path.split("/")[-1].replace(".duckdb", "")
-    con = duckdb.connect(db_path)
-    df = con.execute(f"SELECT * FROM {table}").df()
-    con.close()
-
-    print(df.head())  # Optional preview
-    df['Date'] = pd.to_datetime(df['Date'])
-    df['Date'] = df['Date'].dt.date
-    df = df.set_index('Date').sort_index()
-    df = df.drop(columns=['ticker'], errors='ignore')  # Drop ticker if exists
+        print(df.head())  # Optional preview
+        df['Date'] = pd.to_datetime(df['Date'])
+        df['Date'] = df['Date'].dt.date
+        df = df.set_index('Date').sort_index()
+        df = df.drop(columns=['ticker'], errors='ignore')  # Drop ticker if exists
 
     return df
 
