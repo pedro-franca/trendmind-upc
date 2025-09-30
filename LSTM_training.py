@@ -1,26 +1,29 @@
 # LSTM_training.py
 import pandas as pd
+import yfinance as yf
 import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
+from tensorflow.keras.layers import LSTM, GRU, Dense, Dropout
+from tensorflow.keras.callbacks import EarlyStopping
 from feature_selection import select_features
 from feature_engineering import create_df
 
 # --- Load and transform data ---
-def load_transform_data(ticker, target_col='Close', threshold=0.6):
+def load_transform_data(ticker, target_col='Close'):
     df = create_df(ticker)
-    df = select_features(df, target_col=target_col, threshold=threshold)
-    df = df.ffill().dropna()
+    # df = df[['Close','Open','High','Low','Volume','weighted_sentiment']]
+    df = select_features(df, target_col=target_col)
+    df = df.ffill()
+    df = df.dropna(axis=1, how='all')
     df.sort_index(inplace=True)
     print(df.head())  # Optional preview
     return df
 
-# --- Preprocess data for LSTM ---
+# --- Data prep ---
 def prepare_lstm_data(df, target_col='Close', sequence_length=60):
-    # Only use Close for prediction; scale to [0, 1]
     scaler = MinMaxScaler()
     data_scaled = scaler.fit_transform(df[[target_col]])
 
@@ -28,88 +31,95 @@ def prepare_lstm_data(df, target_col='Close', sequence_length=60):
     for i in range(sequence_length, len(data_scaled)):
         X.append(data_scaled[i-sequence_length:i])
         y.append(data_scaled[i])
-    X, y = np.array(X), np.array(y)
+    return np.array(X), np.array(y), scaler
 
-    return X, y, scaler
-
-# --- Build a simple LSTM model ---
-def build_lstm_model(input_shape):
-    model = Sequential([
-        LSTM(50, return_sequences=True, input_shape=input_shape),
-        LSTM(50),
-        Dense(1)
-    ])
+# --- Build model with given hyperparameters ---
+def build_model(input_shape, use_gru=False):
+    model = Sequential()
+    if use_gru:
+        model.add(GRU(120, activation="tanh", input_shape=input_shape))
+    else:
+        model.add(LSTM(120, activation="tanh", input_shape=input_shape))
+    model.add(Dropout(0.2))
+    model.add(Dense(1))  # output layer
     model.compile(optimizer='adam', loss='mean_squared_error')
     return model
 
-# --- Train the model ---
-def train_lstm(ticker):
-    df = load_transform_data(ticker)
-    print(df.head())  # Optional preview
-    if 'Close' not in df.columns:
-        raise ValueError("Expected 'Close' column in data.")
+# --- Train ---
+def train_model(df, ticker="AAPL", sequence_length=60, use_gru=False):
+    X, y, scaler = prepare_lstm_data(df, target_col='Close', sequence_length=sequence_length)
 
-    X, y, scaler = prepare_lstm_data(df, target_col='Close')
+    model = build_model((X.shape[1], X.shape[2]), use_gru=use_gru)
 
-    model = build_lstm_model((X.shape[1], X.shape[2]))
-    model.fit(X, y, epochs=20, batch_size=32, verbose=1)
+    early_stop = EarlyStopping(monitor="loss", patience=10, restore_best_weights=True)
 
+    model.fit(
+        X, y,
+        epochs=100,  # capped at 100
+        batch_size=30,
+        verbose=1,
+        callbacks=[early_stop]
+    )
     return model, scaler
 
+def forecast_future(model, scaler, df, target_col='Close', sequence_length=60, days_ahead=7):
+    data_scaled = scaler.transform(df[[target_col]])
+    last_seq = data_scaled[-sequence_length:].reshape(1, sequence_length, 1)
 
-# --- Train/test split + evaluation ---
-def train_test_lstm(ticker, sequence_length=60, test_date="2025-03-01", threshold=0.6, target_col='Close'):
-    # Load + preprocess
-    df = load_transform_data(ticker, target_col=target_col, threshold=threshold)
-    df.index = pd.to_datetime(df.index)
-    if 'Close' not in df.columns:
-        raise ValueError("Expected 'Close' column in data.")
+    preds = []
+    seq = last_seq.copy()
+    for _ in range(days_ahead):
+        pred_scaled = model.predict(seq, verbose=0)  # shape (1, 1)
+        preds.append(pred_scaled[0, 0])
 
-    X, y, scaler = prepare_lstm_data(df, target_col=target_col, sequence_length=sequence_length)
+        # reshape to (1, 1, 1) so it matches sequence dimensions
+        pred_scaled_reshaped = pred_scaled.reshape(1, 1, 1)
 
-    test_size = (df.index >= test_date).sum() / len(df)
-    print(f"Test size: {test_size:.2%}")
+        # drop oldest step, append new prediction
+        seq = np.append(seq[:, 1:, :], pred_scaled_reshaped, axis=1)
 
-    # Train/test split
-    split_idx = int(len(X) * (1 - test_size))
-    X_train, X_test = X[:split_idx], X[split_idx:]
-    y_train, y_test = y[:split_idx], y[split_idx:]
+    return scaler.inverse_transform(np.array(preds).reshape(-1, 1)).flatten()
 
-    # Build + train
-    model = build_lstm_model((X.shape[1], X.shape[2]))
-    model.fit(X_train, y_train, epochs=20, batch_size=32, verbose=1)
-
-    # Predictions
-    y_pred = model.predict(X_test)
-
-    # Inverse transform to original scale
-    y_test_rescaled = scaler.inverse_transform(y_test.reshape(-1, 1))
-    y_pred_rescaled = scaler.inverse_transform(y_pred)
-
-    # Metrics
-    mse = mean_squared_error(y_test_rescaled, y_pred_rescaled)
-    mae = mean_absolute_error(y_test_rescaled, y_pred_rescaled)
-    r2 = r2_score(y_test_rescaled, y_pred_rescaled)
-    mape = np.mean(np.abs((y_test_rescaled - y_pred_rescaled) / y_test_rescaled)) * 100
-
-
-    print(f"MSE: {mse:.4f}")
-    print(f"MAE: {mae:.4f}")
-    print(f"MAPE: {mape:.2f}%")
-    print(f"R²: {r2:.4f}")
-
-    # Plot predictions vs actual
-    plt.figure(figsize=(10,5))
-    plt.plot(y_test_rescaled, label="Actual")
-    plt.plot(y_pred_rescaled, label="Predicted")
-    plt.legend()
-    plt.title(f"{ticker} - LSTM Predictions vs Actual")
-    # plt.show()
-
-    return y_pred_rescaled, model, scaler, (mse, mae, r2)
-
-
+# --- Example run ---
 if __name__ == "__main__":
-    ticker = "TCEHY"
-    df = load_transform_data(ticker, target_col='Close', threshold=0.6)
-    print(df.index)
+    tickers = ["AAPL", "MSFT", "GOOG", "META", "NVDA", "TCEHY", "ORCL", "AVGO", "TSM"]
+    for ticker in tickers:
+        print(f"--- Training and forecasting for {ticker} ---")
+        y_test = yf.download(ticker, start="2025-08-25", end="2025-08-28", interval="1d")['Close'].values
+        df_no = yf.download(ticker, start="2022-01-01", end="2025-08-23", interval="1d")
+        df = load_transform_data(ticker, target_col='Close')
+        print(df.head())
+        # You can try different lookbacks: 10, 12, 14, 16, 18, 20
+        lookback = 20
+        model, scaler = train_model(df, ticker, sequence_length=lookback, use_gru=False)
+        model_no, scaler_no = train_model(df_no, ticker, sequence_length=lookback, use_gru=False)
+
+        future_preds = forecast_future(model, scaler, df, sequence_length=lookback, days_ahead=3)
+        future_preds_no = forecast_future(model_no, scaler_no, df_no, sequence_length=lookback, days_ahead=3)
+        print(f"Next 3 predicted closes for {ticker} with lookback {lookback}:")
+        print(future_preds)
+        print(f"Next 3 predicted closes for {ticker} without feature engineering:")
+        print(future_preds_no)
+
+        metrics = {
+            "MSE_with_FE": mean_squared_error(y_test, future_preds),
+            "MAE_with_FE": mean_absolute_error(y_test, future_preds),
+            "R2_with_FE": r2_score(y_test, future_preds),
+            "MSE_no_FE": mean_squared_error(y_test, future_preds_no),
+            "MAE_no_FE": mean_absolute_error(y_test, future_preds_no),
+            "R2_no_FE": r2_score(y_test, future_preds_no),
+        }
+        print(f"{ticker} Metrics:", metrics)
+
+        plt.figure(figsize=(12,6))
+        plt.plot(range(len(y_test)), y_test, label='Actual Close', marker='o')
+        plt.plot(range(len(future_preds)), future_preds, label='Predicted Close (with FE)', marker='x')
+        plt.plot(range(len(future_preds_no)), future_preds_no, label='Predicted Close (no FE)', marker='s')
+        plt.title(f"{ticker} Close Price Prediction")
+        plt.xlabel("Days Ahead")
+        plt.ylabel("Price")
+        plt.legend()
+        plt.grid()
+        plt.savefig(f'{ticker}_prediction.pdf')
+
+

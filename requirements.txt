@@ -19,6 +19,7 @@ duckdb
 # Machine Learning
 tensorflow
 scikit-learn
+xgboost
 
 # MongoDB
 pymongo

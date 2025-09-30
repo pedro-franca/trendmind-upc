@@ -314,6 +314,7 @@ def create_df(ticker):
     df = df.merge(q_fund_df, how='left', left_index=True, right_index=True)
     df = df.merge(treasury_df, how='left', left_index=True, right_index=True)
     df = df.merge(fred_daily_df, how='left', left_index=True, right_index=True)
+    df = df.dropna(subset=['Close'])  # Drop rows where target is NaN
     df = df.ffill()
 
     if 'weighted_sentiment' in df.columns:

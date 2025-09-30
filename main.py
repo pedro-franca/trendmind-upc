@@ -4,7 +4,7 @@ from deltalake import DeltaTable
 import data_cleaning as dc
 import feature_engineering as fe
 import feature_selection as fs
-from LSTM_training import train_test_lstm
+from LSTM_training import train_model, load_transform_data
 
 
 def train_new_ticker(ticker):
@@ -39,6 +39,5 @@ def main():
 
 
 if __name__ == "__main__":
-    df = main()
-    print(df.head())
-    print("Training completed for all tickers.")
+    import xgboost
+    print(xgboost.__version__)
