@@ -82,20 +82,21 @@ def forecast_future(model, scaler, df, target_col='Close', sequence_length=60, d
 
 # --- Example run ---
 if __name__ == "__main__":
-    tickers = ["AAPL", "MSFT", "GOOG", "META", "NVDA", "TCEHY", "ORCL", "AVGO", "TSM"]
+    tickers = ["AAPL", "MSFT"]
     for ticker in tickers:
         print(f"--- Training and forecasting for {ticker} ---")
-        y_test = yf.download(ticker, start="2025-08-25", end="2025-08-28", interval="1d")['Close'].values
-        df_no = yf.download(ticker, start="2022-01-01", end="2025-08-23", interval="1d")
+        y_test = yf.download(ticker, start="2025-07-01", end="2025-08-13", interval="1d")['Close'].values
+        df_no = yf.download(ticker, start="2022-01-01", end="2025-07-01", interval="1d")[['Close']]
         df = load_transform_data(ticker, target_col='Close')
         print(df.head())
         # You can try different lookbacks: 10, 12, 14, 16, 18, 20
-        lookback = 20
+        lookback = 60
+        days_ahead = 30
         model, scaler = train_model(df, ticker, sequence_length=lookback, use_gru=False)
         model_no, scaler_no = train_model(df_no, ticker, sequence_length=lookback, use_gru=False)
 
-        future_preds = forecast_future(model, scaler, df, sequence_length=lookback, days_ahead=3)
-        future_preds_no = forecast_future(model_no, scaler_no, df_no, sequence_length=lookback, days_ahead=3)
+        future_preds = forecast_future(model, scaler, df, sequence_length=lookback, days_ahead=days_ahead)
+        future_preds_no = forecast_future(model_no, scaler_no, df_no, sequence_length=lookback, days_ahead=days_ahead)
         print(f"Next 3 predicted closes for {ticker} with lookback {lookback}:")
         print(future_preds)
         print(f"Next 3 predicted closes for {ticker} without feature engineering:")
