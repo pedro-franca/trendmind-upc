@@ -14,8 +14,7 @@ def load_data(db_path):
         con = duckdb.connect(db_path)
         df = con.execute(f"SELECT * FROM {table}").df()
         con.close()
-
-        print(df.head())  # Optional preview
+        # Ensure Date is datetime and set as index
         df['Date'] = pd.to_datetime(df['Date'])
         df['Date'] = df['Date'].dt.date
         df = df.set_index('Date').sort_index()
@@ -185,6 +184,17 @@ def volume_accumulation_distribution_index(data, corr_window=14, corr_threshold=
 
     return data
 
+
+def desperate_vars(df):
+    df["HL_PCT"] = (df["High"] - df["Low"]) / df["Close"] * 100.0
+    df["PCT_change"] = (df["Close"] - df["Open"]) / df["Open"] * 100.0
+    # lag close by 1 day
+    df["Close_lag1"] = df["Close"].shift(1)
+    if "Date" in df.columns:
+        df = df.set_index("Date")
+    df = df[['HL_PCT', 'PCT_change', 'Close_lag1']]
+    return df
+
 # --- Join all technical variables ---
 def join_tch_vars(df):
     data = momentum_rsi(df, window=14)
@@ -239,8 +249,6 @@ def lt_news_data(ticker):
         ).reset_index(name="weighted_sentiment")
     
     sentiment_df = sentiment_df.set_index('Date').sort_index()
-    
-    print(sentiment_df.head())  # Optional preview
          
     return sentiment_df
 
@@ -261,8 +269,6 @@ def lt_sec_data(db_path):
         print(f"Warning: Delta path {db_path} does not exist.")
         sec_df = pd.DataFrame() 
 
-    print(sec_df.head())  # Optional preview
-
     return sec_df
 
 def lt_treasury_data(db_path="./data/treasury_yield.duckdb"):
@@ -279,48 +285,51 @@ def lt_fred_daily_data(db_path="./data/fred_daily.duckdb"):
 
 def create_df(ticker):
     df = load_data(db_path=f"./data/{ticker}_yf.duckdb")
-    df = join_tch_vars(df)
-    print(df.head())  # Optional preview
+    dp_df = desperate_vars(df)
+    df_tech = join_tch_vars(df)
 
     sec_10q_df = lt_sec_data(db_path=f"./data/{ticker}_10q.duckdb")
     sec_10k_df = lt_sec_data(db_path=f"./data/{ticker}_10k.duckdb")
     sec_10k_df = sec_10k_df.add_suffix('_10k')
     sec_df = pd.concat([sec_10q_df, sec_10k_df]).drop_duplicates().sort_index()
-    print(sec_df.head())  # Optional preview
 
     news_df = lt_news_data(ticker)
 
     instruments_df = load_data(db_path=f"./data/instruments.duckdb")
-    print(instruments_df.head())  # Optional preview
 
     d_market_df = load_data(db_path=f"./data/{ticker}_daily_market.duckdb")
-    print(d_market_df.head())  # Optional preview
 
     q_fund_df = load_data(db_path=f"./data/{ticker}_quarterly_fundamentals.duckdb")
-    print(q_fund_df.head())  # Optional preview
 
     treasury_df = lt_treasury_data(db_path="./data/treasury_yields.duckdb")
-    print(treasury_df.head())  # Optional preview
 
     fred_daily_df = lt_fred_daily_data(db_path="./data/fred_daily.duckdb")
-    print(fred_daily_df.head())  # Optional preview
 
     # Merge all dataframes on date
-    if not sec_df.empty:
-        df = df.merge(sec_df, how='left', left_index=True, right_index=True)
-    df = df.merge(news_df, how='left', left_index=True, right_index=True)
-    df = df.merge(instruments_df, how='left', left_index=True, right_index=True)
-    df = df.merge(d_market_df, how='left', left_index=True, right_index=True)
-    df = df.merge(q_fund_df, how='left', left_index=True, right_index=True)
-    df = df.merge(treasury_df, how='left', left_index=True, right_index=True)
-    df = df.merge(fred_daily_df, how='left', left_index=True, right_index=True)
-    df = df.dropna(subset=['Close'])  # Drop rows where target is NaN
-    df = df.ffill()
 
-    if 'weighted_sentiment' in df.columns:
-        df = df.dropna(subset=['weighted_sentiment'])
+    if not sec_df.empty:
+        data = df.merge(sec_df, how='left', left_index=True, right_index=True)
+    else:
+        data = df.copy()
+    data = data.merge(news_df, how='left', left_index=True, right_index=True)
+    data = data.merge(instruments_df, how='left', left_index=True, right_index=True)
+    data = data.merge(d_market_df, how='left', left_index=True, right_index=True)
+    data = data.merge(q_fund_df, how='left', left_index=True, right_index=True)
+    data = data.merge(treasury_df, how='left', left_index=True, right_index=True)
+    data = data.merge(fred_daily_df, how='left', left_index=True, right_index=True)
+    data = data.dropna(subset=['Close'])  # Drop rows where target is NaN
+    data = data.ffill()
+    data = data.dropna(axis=1, how='all')  # Drop columns that are all NaN
+
+    #if 'weighted_sentiment' in data.columns:
+    #    data = data.dropna(subset=['weighted_sentiment'])
 
     # df = df.drop(columns=['Open','High','Low','Volume'], errors='ignore')
-    print(df.shape)
-    return df
+    print(data.shape)
 
+    return data
+
+if __name__ == "__main__":
+    ticker = "ORCL"
+    df = create_df(ticker)
+    print(df.tail())

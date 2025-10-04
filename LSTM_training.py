@@ -1,126 +1,238 @@
-# LSTM_training.py
-import pandas as pd
-import yfinance as yf
 import numpy as np
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+import pandas as pd
+import joblib
+import yfinance as yf
 import matplotlib.pyplot as plt
+import duckdb
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, GRU, Dense, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
-from feature_selection import select_features
+from tensorflow.keras.optimizers import Adam
 from feature_engineering import create_df
 
-# --- Load and transform data ---
-def load_transform_data(ticker, target_col='Close'):
+
+
+# -------------------------
+# 1. Load Data
+# -------------------------
+# Example: assume df has OHLCV columns
+# Replace with your data loading step
+def load_transform_data(ticker):
     df = create_df(ticker)
-    # df = df[['Close','Open','High','Low','Volume','weighted_sentiment']]
-    df = select_features(df, target_col=target_col)
     df = df.ffill()
     df = df.dropna(axis=1, how='all')
     df.sort_index(inplace=True)
-    print(df.head())  # Optional preview
     return df
 
-# --- Data prep ---
-def prepare_lstm_data(df, target_col='Close', sequence_length=60):
-    scaler = MinMaxScaler()
-    data_scaled = scaler.fit_transform(df[[target_col]])
-
-    X, y = [], []
-    for i in range(sequence_length, len(data_scaled)):
-        X.append(data_scaled[i-sequence_length:i])
-        y.append(data_scaled[i])
-    return np.array(X), np.array(y), scaler
-
-# --- Build model with given hyperparameters ---
-def build_model(input_shape, use_gru=False):
-    model = Sequential()
-    if use_gru:
-        model.add(GRU(120, activation="tanh", input_shape=input_shape))
+# -------------------------
+# 2. Feature Selection
+# -------------------------
+def select_features(df, target_col="Close", method="rf", top_k=10, corr_threshold=0.2):
+    """
+    Select features automatically using different methods:
+      - 'corr': correlation with target
+      - 'rf'  : RandomForest importance
+    """
+    if method == "corr":
+        corr = df.corr()[target_col].drop(target_col)
+        selected = corr[abs(corr) > corr_threshold].index.tolist()
+    
+    elif method == "rf":
+        X_fs = df.drop(columns=[target_col])
+        y_fs = df[target_col]
+        rf = RandomForestRegressor(n_estimators=100, random_state=42)
+        rf.fit(X_fs, y_fs)
+        importances = pd.Series(rf.feature_importances_, index=X_fs.columns)
+        selected = importances.sort_values(ascending=False).head(top_k).index.tolist()
+    
     else:
-        model.add(LSTM(120, activation="tanh", input_shape=input_shape))
+        raise ValueError("method must be 'corr', 'rf'")
+    
+    if 'Close_lag1' not in selected:
+        selected = selected + ['Close_lag1']
+    
+    return selected + [target_col]  # always include target
+
+
+def create_sequences(data, feature_columns, n_past=60):
+    """
+    Build sequences to predict only tomorrow's Close (t+1)
+    """
+    X, y = [], []
+    close_idx = feature_columns.index("Close")
+    
+    for i in range(n_past, len(data)-1):  # t+1
+        X.append(data[i-n_past:i, :])
+        y.append(data[i, close_idx])  # only t+1
+    
+    return np.array(X), np.array(y)
+
+
+
+# -------------------------
+# 6. Forecast Function
+# -------------------------
+def forecast_future(model, data, scaler, feature_columns, n_future=30, n_past=60):
+    close_idx = feature_columns.index("Close")
+    last_sequence = data[feature_columns].values[-n_past:]
+    last_sequence_scaled = scaler.transform(last_sequence)
+    input_seq = last_sequence_scaled.reshape(1, n_past, len(feature_columns))
+    
+    preds_scaled = []
+    
+    for _ in range(n_future):
+        next_pred_scaled = model.predict(input_seq, verbose=0)[0,0]  # scalar
+        preds_scaled.append(next_pred_scaled)
+        
+        # build next row
+        next_row_scaled = input_seq[0, -1, :].copy()
+        next_row_scaled[close_idx] = next_pred_scaled
+        
+        # roll input
+        input_seq = np.append(input_seq[:,1:,:], next_row_scaled.reshape(1,1,len(feature_columns)), axis=1)
+    
+    # inverse transform to original scale
+    preds_scaled_array = np.array(preds_scaled).reshape(-1,1)
+    preds_full = np.repeat(preds_scaled_array, len(feature_columns), axis=1)
+    preds = scaler.inverse_transform(preds_full)[:, close_idx]
+    
+    forecast_df = pd.DataFrame({"Close_t1": preds})
+    return forecast_df
+
+def forecast_pipeline(df):
+    feature_columns = select_features(df, target_col="Close", method="rf", top_k=3, corr_threshold=0.8)
+    print("Auto-selected features:", feature_columns)
+    data = df[feature_columns].copy()
+    print(data.columns)
+    data = data.dropna()
+    scaler = MinMaxScaler(feature_range=(0,1))
+    scaled_data = scaler.fit_transform(data)
+    print("Scaled data shape:", scaled_data.shape)
+    print(np.isnan(scaled_data).sum(), np.isinf(scaled_data).sum())
+    X, y = create_sequences(scaled_data, feature_columns, n_past=10)
+    print("X shape:", X.shape, "y shape:", y.shape)
+    model = Sequential()
+    model.add(LSTM(120, activation="tanh", input_shape=(X.shape[1], X.shape[2])))
     model.add(Dropout(0.2))
-    model.add(Dense(1))  # output layer
-    model.compile(optimizer='adam', loss='mean_squared_error')
-    return model
-
-# --- Train ---
-def train_model(df, ticker="AAPL", sequence_length=60, use_gru=False):
-    X, y, scaler = prepare_lstm_data(df, target_col='Close', sequence_length=sequence_length)
-
-    model = build_model((X.shape[1], X.shape[2]), use_gru=use_gru)
-
+    model.add(Dense(1))
+    model.compile(optimizer=Adam(learning_rate=0.0001), loss="mse")
     early_stop = EarlyStopping(monitor="loss", patience=10, restore_best_weights=True)
-
     model.fit(
         X, y,
-        epochs=100,  # capped at 100
-        batch_size=30,
+        epochs=100,
+        batch_size=32,
+        validation_split=0.1,
         verbose=1,
         callbacks=[early_stop]
     )
-    return model, scaler
+    forecast_df = forecast_future(
+        model=model,
+        data=df,
+        scaler=scaler,
+        feature_columns=feature_columns,
+        n_future=1,
+        n_past=10
+    )
+    return model, forecast_df
 
-def forecast_future(model, scaler, df, target_col='Close', sequence_length=60, days_ahead=7):
-    data_scaled = scaler.transform(df[[target_col]])
-    last_seq = data_scaled[-sequence_length:].reshape(1, sequence_length, 1)
+def evaluate_models(true_prices, pred_model1, pred_model2):
+    results = {}
+    
+    # Converte para arrays 1D
+    true_prices = np.array(true_prices).ravel()
+    pred_model1 = np.array(pred_model1).ravel()
+    pred_model2 = np.array(pred_model2).ravel()
+    
+    # Garante mesmo tamanho (corta se necessário)
+    min_len = min(len(true_prices), len(pred_model1), len(pred_model2))
+    true_prices = true_prices[:min_len]
+    pred_model1 = pred_model1[:min_len]
+    pred_model2 = pred_model2[:min_len]
 
-    preds = []
-    seq = last_seq.copy()
-    for _ in range(days_ahead):
-        pred_scaled = model.predict(seq, verbose=0)  # shape (1, 1)
-        preds.append(pred_scaled[0, 0])
+    for name, preds in {"Model1": pred_model1, "Model2": pred_model2}.items():
+        # Métricas de regressão
+        mae = mean_absolute_error(true_prices, preds)
+        rmse = np.sqrt(mean_squared_error(true_prices, preds))
+        mape = np.mean((true_prices - preds) / true_prices) * 100
 
-        # reshape to (1, 1, 1) so it matches sequence dimensions
-        pred_scaled_reshaped = pred_scaled.reshape(1, 1, 1)
+        # Direcionalidade
+      #  true_dir = np.sign(np.diff(true_prices))
+      #  pred_dir = np.sign(np.diff(preds))
+      #  dir_acc = np.mean(true_dir == pred_dir) * 100
 
-        # drop oldest step, append new prediction
-        seq = np.append(seq[:, 1:, :], pred_scaled_reshaped, axis=1)
+        # Backtest simples
+     #   returns = np.sign(np.diff(preds)) * np.diff(true_prices)
+      #  cum_return = np.sum(returns)
 
-    return scaler.inverse_transform(np.array(preds).reshape(-1, 1)).flatten()
-
-# --- Example run ---
-if __name__ == "__main__":
-    tickers = ["AAPL", "MSFT"]
-    for ticker in tickers:
-        print(f"--- Training and forecasting for {ticker} ---")
-        y_test = yf.download(ticker, start="2025-07-01", end="2025-08-13", interval="1d")['Close'].values
-        df_no = yf.download(ticker, start="2022-01-01", end="2025-07-01", interval="1d")[['Close']]
-        df = load_transform_data(ticker, target_col='Close')
-        print(df.head())
-        # You can try different lookbacks: 10, 12, 14, 16, 18, 20
-        lookback = 60
-        days_ahead = 30
-        model, scaler = train_model(df, ticker, sequence_length=lookback, use_gru=False)
-        model_no, scaler_no = train_model(df_no, ticker, sequence_length=lookback, use_gru=False)
-
-        future_preds = forecast_future(model, scaler, df, sequence_length=lookback, days_ahead=days_ahead)
-        future_preds_no = forecast_future(model_no, scaler_no, df_no, sequence_length=lookback, days_ahead=days_ahead)
-        print(f"Next 3 predicted closes for {ticker} with lookback {lookback}:")
-        print(future_preds)
-        print(f"Next 3 predicted closes for {ticker} without feature engineering:")
-        print(future_preds_no)
-
-        metrics = {
-            "MSE_with_FE": mean_squared_error(y_test, future_preds),
-            "MAE_with_FE": mean_absolute_error(y_test, future_preds),
-            "R2_with_FE": r2_score(y_test, future_preds),
-            "MSE_no_FE": mean_squared_error(y_test, future_preds_no),
-            "MAE_no_FE": mean_absolute_error(y_test, future_preds_no),
-            "R2_no_FE": r2_score(y_test, future_preds_no),
+        results[name] = {
+            "MAE": mae,
+            "RMSE": rmse,
+            "MAPE (%)": mape
         }
-        print(f"{ticker} Metrics:", metrics)
+
+    return pd.DataFrame(results)
+
+
+# -------------------------
+# 8. Plot
+# -------------------------
+if __name__ == "__main__":
+    data = pd.DataFrame()
+    for ticker in ["AAPL", "GOOG", "MSFT", "TSM", "AVGO", "META", "NVDA", "ORCL", "TCEHY"]:
+        print(f"Processing {ticker}...")
+
+        y_test = yf.download(ticker, start="2025-08-25", end="2025-09-29", interval="1d")['Close'].values
+
+        df = load_transform_data(ticker)
+        # drop columns High, Low, Volume
+        #cols = [c for c in ['Close', 'Close_lag1', 'PCT_change' ,'SMA_5', 'ev_x', 'EMA_10', 'weighted_sentiment'] if c in df_all.columns]
+        model, forecast_df = forecast_pipeline(df)
+        forecast_close_t1 = forecast_df["Close_t1"]
+
+       # joblib.dump(model, f"forecast_{ticker}.pkl")
+
+        df_no = df[["Close","Close_lag1"]].copy()
+        model, forecast_df_no = forecast_pipeline(df_no)
+        forecast_close_no_t1 = forecast_df_no["Close_t1"]
+
 
         plt.figure(figsize=(12,6))
-        plt.plot(range(len(y_test)), y_test, label='Actual Close', marker='o')
-        plt.plot(range(len(future_preds)), future_preds, label='Predicted Close (with FE)', marker='x')
-        plt.plot(range(len(future_preds_no)), future_preds_no, label='Predicted Close (no FE)', marker='s')
-        plt.title(f"{ticker} Close Price Prediction")
-        plt.xlabel("Days Ahead")
+        plt.plot(df.index[-50:], df["Close"].values[-50:], label="History", linewidth=2)
+
+        # Generate future dates
+        future_dates = pd.date_range(start=df.index[-1] + pd.Timedelta(days=1), 
+                                    periods=len(forecast_df), freq="D")
+
+        # Plot both forecasts
+        plt.plot(future_dates, forecast_df["Close_t1"], label="Forecast (t+1)", marker='*')
+
+        plt.plot(future_dates, forecast_df_no["Close_t1"], label="Forecast NO FE (t+1)", marker='+')
+
+        # Plot actual test prices if available
+        plt.plot(future_dates[:len(y_test)], y_test, label="Actual", markerfacecolor='none', alpha=0.7, marker='o')
+
+        plt.title(f"{ticker} Price Forecast t+1")
+        plt.xlabel("Date")
         plt.ylabel("Price")
         plt.legend()
-        plt.grid()
-        plt.savefig(f'{ticker}_prediction.pdf')
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+       # plt.savefig(f'prediction_{ticker}.png')
+        plt.show()
 
 
+        results = evaluate_models(y_test, forecast_close_t1, forecast_close_no_t1)
+        # results.to_csv(f"results_{ticker}.csv")
+        print(results)
+
+        forecast_df.columns = [f'Close_t1_{ticker}']
+        data = pd.concat([data,forecast_df], axis=1)
+
+   # output_path = "./data/predictions.duckdb"
+   # con = duckdb.connect(database=output_path, read_only=False)
+   # con.execute(f"CREATE OR REPLACE TABLE predictions AS SELECT * FROM data")
+   # con.close()
+   # print(f"✅ Data exported to {output_path}")
