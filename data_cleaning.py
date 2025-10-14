@@ -5,6 +5,7 @@ import os
 from deltalake import DeltaTable
 from pymongo import MongoClient
 
+mongo_uri = "mongodb+srv://pedrochfr:trendmind@cluster0.5j733.mongodb.net/"
 
 # --- Read df from Delta Lake ---
 def read_df(delta_path=None):
@@ -50,7 +51,7 @@ def export_news_to_mongodb(ticker):
         json_data = [json_data]
     
     # Connect to MongoDB (make sure MongoDB is running and accessible)
-    client = MongoClient("mongodb://localhost:27017/")
+    client = MongoClient(mongo_uri)
     db = client[MONGO_DB]
     collection = db[MONGO_COLLECTION]
 
@@ -59,4 +60,5 @@ def export_news_to_mongodb(ticker):
 
 
 if __name__ == "__main__":
-    export_news_to_mongodb('tech')
+    for ticker in ["AAPL", "GOOG", "MSFT", "TSM", "AVGO", "META", "NVDA", "ORCL", "TCEHY"]:
+        export_news_to_mongodb(ticker)

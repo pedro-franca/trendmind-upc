@@ -5,6 +5,8 @@ import os
 from datetime import datetime
 from pymongo import MongoClient
 
+mongo_uri = "mongodb+srv://pedrochfr:trendmind@cluster0.5j733.mongodb.net/"
+
 # --- Load data from DuckDB ---
 def load_data(db_path):
     if not os.path.exists(db_path):
@@ -213,7 +215,7 @@ def lt_news_data(ticker):
     MONGO_DB = "financial_news"
     MONGO_COLLECTION = f"{ticker}_news"
 
-    client = MongoClient("mongodb://localhost:27017/")
+    client = MongoClient(mongo_uri)
     db = client[MONGO_DB]
     collection = db[MONGO_COLLECTION]
 
@@ -254,7 +256,7 @@ def lt_tech_news():
     MONGO_DB = "financial_news"
     MONGO_COLLECTION = "tech_news"
 
-    client = MongoClient("mongodb://localhost:27017/")
+    client = MongoClient(mongo_uri)
     db = client[MONGO_DB]
     collection = db[MONGO_COLLECTION]
 
