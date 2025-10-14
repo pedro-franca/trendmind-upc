@@ -1,3 +1,4 @@
+from sklearn.preprocessing import MinMaxScaler
 import streamlit as st
 import pickle
 import pandas as pd
@@ -5,7 +6,7 @@ import duckdb
 from pymongo import MongoClient
 import plotly.express as px
 from datetime import datetime, timedelta
-from LSTM_training import create_df, forecast_pipeline
+from LSTM_training import create_df, forecast_future
 
 # ---------- CONFIG ----------
 st.set_page_config(page_title="Stock Price Predictor", layout="wide")
@@ -32,8 +33,10 @@ if ticker:
             model = pickle.load(f)
 
         # ---------- PREPARE INPUT ----------
-        last_10 = df["Close"].values[-10:].reshape(1, -1, 1)  # adjust for your model
-        predicted_price = model.predict(last_10)[0][0]
+        scaler = MinMaxScaler(feature_range=(0,1))
+        scaled_data = scaler.fit_transform(df)
+        forecast_df = forecast_future(model, df, scaler, feature_columns=['Close', 'PCT_change','weighted_tech_sentiment'], n_future=1, n_past=10)
+        predicted_price = forecast_df["Close_t1"]
 
         # ---------- DISPLAY PREDICTION ----------
         st.subheader(f"Next-Day Predicted Price for {ticker}: ${predicted_price:.2f}")
@@ -42,3 +45,20 @@ if ticker:
 
     except FileNotFoundError:
         st.error(f"No model found for ticker {ticker}")
+
+
+if __name__ == "__main__":
+    ticker = "AAPL"
+    df = create_df(ticker)
+    df = df[['Close', 'PCT_change','weighted_tech_sentiment']]
+
+    model_path = f"pkl/forecast_{ticker}.pkl"
+    with open(model_path, "rb") as f:
+        model = pickle.load(f)
+
+    # ---------- PREPARE INPUT ----------
+    scaler = MinMaxScaler(feature_range=(0,1))
+    scaled_data = scaler.fit_transform(df)
+    forecast_df = forecast_future(model, df, scaler, feature_columns=['Close', 'PCT_change','weighted_tech_sentiment'], n_future=1, n_past=10)
+    forecast_close_t1 = forecast_df["Close_t1"]
+    print(f"Next-Day Predicted Price for {ticker}: ${forecast_close_t1.values[0]:.2f}")
