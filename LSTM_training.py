@@ -214,7 +214,7 @@ if __name__ == "__main__":
         model, forecast_df = forecast_pipeline(df1)
         forecast_close_t1 = forecast_df["Close_t1"]
 
-        joblib.dump(model, f"./pkl/forecast_{ticker}.pkl")
+        # joblib.dump(model, f"./pkl/forecast_{ticker}.pkl")
 
         # df_no = df[["Close","Close_lag1"]].copy()
         # model, forecast_df_no = forecast_pipeline(df_no)
