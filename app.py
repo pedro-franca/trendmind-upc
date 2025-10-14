@@ -35,7 +35,7 @@ if ticker:
         # ---------- PREPARE INPUT ----------
         scaler = MinMaxScaler(feature_range=(0,1))
         scaled_data = scaler.fit_transform(df)
-        forecast_df = forecast_future(model, df, scaler, feature_columns=['Close', 'PCT_change','weighted_tech_sentiment'], n_future=1, n_past=10)
+        forecast_df = forecast_future(model, df, scaler, feature_columns=['Close', 'PCT_change','weighted_tech_sentiment'], n_future=5, n_past=10)
         predicted_price = forecast_df["Close_t1"]
 
         # ---------- DISPLAY PREDICTION ----------
