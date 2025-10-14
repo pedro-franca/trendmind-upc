@@ -24,7 +24,7 @@ if ticker:
 
     # ---------- PLOT PRICE HISTORY ----------
     fig = px.line(df, x=df.index[-50:], y=df["Close"].values[-50:], title=f"{ticker} Closing Prices")
-    st.plotly_chart(fig, use_container_width=True)
+    fig.update_layout(xaxis_title="Date", yaxis_title="Price")
 
     # ---------- LOAD MODEL ----------
     model_path = f"pkl/forecast_{ticker}.pkl"
@@ -39,26 +39,12 @@ if ticker:
         predicted_price = forecast_df["Close_t1"]
 
         # ---------- DISPLAY PREDICTION ----------
-        st.subheader(f"Next-Day Predicted Price for {ticker}: ${predicted_price:.2f}")
-        st.write(f"Last updated: {df.index.max().strftime('%Y-%m-%d')}")
+        # Generate future dates (same as before)
+        future_dates = pd.date_range(start=df.index[-1] + pd.Timedelta(days=1), 
+                             periods=len(forecast_df), freq="D")
 
+        fig.add_scatter(x=future_dates, y=predicted_price, mode='markers+lines', name='Predicted Price', marker=dict(symbol='star', size=10, color='red'))
+        st.plotly_chart(fig, use_container_width=True)
 
     except FileNotFoundError:
         st.error(f"No model found for ticker {ticker}")
-
-
-if __name__ == "__main__":
-    ticker = "AAPL"
-    df = create_df(ticker)
-    df = df[['Close', 'PCT_change','weighted_tech_sentiment']]
-
-    model_path = f"pkl/forecast_{ticker}.pkl"
-    with open(model_path, "rb") as f:
-        model = pickle.load(f)
-
-    # ---------- PREPARE INPUT ----------
-    scaler = MinMaxScaler(feature_range=(0,1))
-    scaled_data = scaler.fit_transform(df)
-    forecast_df = forecast_future(model, df, scaler, feature_columns=['Close', 'PCT_change','weighted_tech_sentiment'], n_future=1, n_past=10)
-    forecast_close_t1 = forecast_df["Close_t1"]
-    print(f"Next-Day Predicted Price for {ticker}: ${forecast_close_t1.values[0]:.2f}")
