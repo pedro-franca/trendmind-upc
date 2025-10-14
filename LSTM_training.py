@@ -4,11 +4,12 @@ import joblib
 import yfinance as yf
 import matplotlib.pyplot as plt
 import duckdb
+from pmdarima import auto_arima
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, GRU, Dense, Dropout
+from tensorflow.keras.layers import LSTM, Dense, Dropout, Conv1D, BatchNormalization
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.optimizers import Adam
 from feature_engineering import create_df
@@ -25,6 +26,13 @@ def load_transform_data(ticker):
     df = df.ffill()
     df = df.dropna(axis=1, how='all')
     df.sort_index(inplace=True)
+    df.index = pd.to_datetime(df.index, errors='coerce')
+    # df['year'] = df.index.year
+    # df['month'] = df.index.month
+    # df['day'] = df.index.day
+    # df['dayofweek'] = df.index.dayofweek  # 0 = Monday
+    # df['quarter'] = df.index.quarter
+    # df['dayofyear'] = df.index.dayofyear
     return df
 
 # -------------------------
@@ -51,8 +59,8 @@ def select_features(df, target_col="Close", method="rf", top_k=10, corr_threshol
     else:
         raise ValueError("method must be 'corr', 'rf'")
     
-    if 'Close_lag1' not in selected:
-        selected = selected + ['Close_lag1']
+    if 'weighted_tech_sentiment' not in selected:
+        selected = selected + ['weighted_tech_sentiment','weighted_sentiment']
     
     return selected + [target_col]  # always include target
 
@@ -75,7 +83,7 @@ def create_sequences(data, feature_columns, n_past=60):
 # -------------------------
 # 6. Forecast Function
 # -------------------------
-def forecast_future(model, data, scaler, feature_columns, n_future=30, n_past=60):
+def forecast_future(model, data, scaler, feature_columns, n_future=10, n_past=60):
     close_idx = feature_columns.index("Close")
     last_sequence = data[feature_columns].values[-n_past:]
     last_sequence_scaled = scaler.transform(last_sequence)
@@ -103,7 +111,18 @@ def forecast_future(model, data, scaler, feature_columns, n_future=30, n_past=60
     return forecast_df
 
 def forecast_pipeline(df):
-    feature_columns = select_features(df, target_col="Close", method="rf", top_k=3, corr_threshold=0.8)
+#     arima_model = auto_arima(
+#     df['Close'], 
+#     seasonal=False, 
+#     trace=True,
+#     error_action='ignore', 
+#     suppress_warnings=True,
+#     stepwise=True
+# )
+#     arima_pred = arima_model.predict_in_sample()
+#     df['ARIMA_pred'] = arima_pred
+    # feature_columns = select_features(df, target_col="Close", method="rf", top_k=10, corr_threshold=0.8)
+    feature_columns = df.columns.tolist()
     print("Auto-selected features:", feature_columns)
     data = df[feature_columns].copy()
     print(data.columns)
@@ -115,6 +134,8 @@ def forecast_pipeline(df):
     X, y = create_sequences(scaled_data, feature_columns, n_past=10)
     print("X shape:", X.shape, "y shape:", y.shape)
     model = Sequential()
+    # model.add(Conv1D(filters=64, kernel_size=3, activation='relu', input_shape=(30, X.shape[2]))),
+    # model.add(BatchNormalization()),
     model.add(LSTM(120, activation="tanh", input_shape=(X.shape[1], X.shape[2])))
     model.add(Dropout(0.2))
     model.add(Dense(1))
@@ -138,21 +159,21 @@ def forecast_pipeline(df):
     )
     return model, forecast_df
 
-def evaluate_models(true_prices, pred_model1, pred_model2):
+def evaluate_models(true_prices, pred_model1): #, pred_model2):
     results = {}
     
     # Converte para arrays 1D
     true_prices = np.array(true_prices).ravel()
     pred_model1 = np.array(pred_model1).ravel()
-    pred_model2 = np.array(pred_model2).ravel()
+    #pred_model2 = np.array(pred_model2).ravel()
     
     # Garante mesmo tamanho (corta se necessário)
-    min_len = min(len(true_prices), len(pred_model1), len(pred_model2))
+    min_len = min(len(true_prices), len(pred_model1)) #, len(pred_model2))
     true_prices = true_prices[:min_len]
     pred_model1 = pred_model1[:min_len]
-    pred_model2 = pred_model2[:min_len]
+   # pred_model2 = pred_model2[:min_len]
 
-    for name, preds in {"Model1": pred_model1, "Model2": pred_model2}.items():
+    for name, preds in {"Model1": pred_model1}.items(): # , "Model2": pred_model2}.items():
         # Métricas de regressão
         mae = mean_absolute_error(true_prices, preds)
         rmse = np.sqrt(mean_squared_error(true_prices, preds))
@@ -184,19 +205,20 @@ if __name__ == "__main__":
     for ticker in ["AAPL", "GOOG", "MSFT", "TSM", "AVGO", "META", "NVDA", "ORCL", "TCEHY"]:
         print(f"Processing {ticker}...")
 
-        y_test = yf.download(ticker, start="2025-08-25", end="2025-09-29", interval="1d")['Close'].values
+        y_test = yf.download(ticker, start="2025-08-22", end="2025-08-25", interval="1d")['Close'].values
 
         df = load_transform_data(ticker)
         # drop columns High, Low, Volume
-        #cols = [c for c in ['Close', 'Close_lag1', 'PCT_change' ,'SMA_5', 'ev_x', 'EMA_10', 'weighted_sentiment'] if c in df_all.columns]
-        model, forecast_df = forecast_pipeline(df)
+        cols = [c for c in ['Close', 'PCT_change','weighted_tech_sentiment'] if c in df.columns]
+        df1 = df[cols]
+        model, forecast_df = forecast_pipeline(df1)
         forecast_close_t1 = forecast_df["Close_t1"]
 
-       # joblib.dump(model, f"forecast_{ticker}.pkl")
+        joblib.dump(model, f"./pkl/forecast_{ticker}.pkl")
 
-        df_no = df[["Close","Close_lag1"]].copy()
-        model, forecast_df_no = forecast_pipeline(df_no)
-        forecast_close_no_t1 = forecast_df_no["Close_t1"]
+        # df_no = df[["Close","Close_lag1"]].copy()
+        # model, forecast_df_no = forecast_pipeline(df_no)
+        # forecast_close_no_t1 = forecast_df_no["Close_t1"]
 
 
         plt.figure(figsize=(12,6))
@@ -209,7 +231,7 @@ if __name__ == "__main__":
         # Plot both forecasts
         plt.plot(future_dates, forecast_df["Close_t1"], label="Forecast (t+1)", marker='*')
 
-        plt.plot(future_dates, forecast_df_no["Close_t1"], label="Forecast NO FE (t+1)", marker='+')
+        # plt.plot(future_dates, forecast_df_no["Close_t1"], label="Forecast NO FE (t+1)", marker='+')
 
         # Plot actual test prices if available
         plt.plot(future_dates[:len(y_test)], y_test, label="Actual", markerfacecolor='none', alpha=0.7, marker='o')
@@ -220,16 +242,20 @@ if __name__ == "__main__":
         plt.legend()
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
-       # plt.savefig(f'prediction_{ticker}.png')
+        # plt.savefig(f'prediction_{ticker}.png')
         plt.show()
 
 
-        results = evaluate_models(y_test, forecast_close_t1, forecast_close_no_t1)
+        results = evaluate_models(y_test, forecast_close_t1) # , forecast_close_no_t1)
         # results.to_csv(f"results_{ticker}.csv")
+        results.rename(columns={'Model1': ticker},inplace=True)
         print(results)
 
-        forecast_df.columns = [f'Close_t1_{ticker}']
-        data = pd.concat([data,forecast_df], axis=1)
+
+
+        data = pd.concat([data,results], axis=1)
+    # data.to_csv('RF_final_model.csv')
+    print(data)
 
    # output_path = "./data/predictions.duckdb"
    # con = duckdb.connect(database=output_path, read_only=False)

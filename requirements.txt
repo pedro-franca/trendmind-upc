@@ -3,6 +3,7 @@ numpy
 pandas
 matplotlib
 seaborn
+plotly
 
 # Yahoo Finance
 requests
@@ -20,6 +21,7 @@ duckdb
 tensorflow
 scikit-learn
 xgboost
+pmdarima
 
 # MongoDB
 pymongo
@@ -29,3 +31,6 @@ edgartools
 
 # Others
 nasdaq-data-link
+
+# Streamlit
+streamlit

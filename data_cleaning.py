@@ -59,4 +59,4 @@ def export_news_to_mongodb(ticker):
 
 
 if __name__ == "__main__":
-    export_to_duckdb(delta_path="./data/fred_daily", output_path="./data/fred_daily.duckdb")
+    export_news_to_mongodb('tech')

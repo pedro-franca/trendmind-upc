@@ -1,8 +1,12 @@
 import numpy as np
-import duckdb
+import pandas as pd
+from feature_engineering import create_df
 
-db_path = './data/predictions.duckdb'
-con = duckdb.connect(db_path)
-df = con.execute(f"SELECT * FROM predictions").df()
-con.close()
-print(df.head())
+
+for ticker in ["AAPL", "GOOG", "MSFT", "TSM", "AVGO", "META", "NVDA", "ORCL", "TCEHY"]:
+    df = create_df(ticker)
+    df = df.ffill()
+    df = df.dropna(axis=1, how='all')
+    df.sort_index(inplace=True)
+    df_d = df.describe()
+    df_d.to_csv(f'{ticker}_description.csv')

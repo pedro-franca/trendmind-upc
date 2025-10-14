@@ -2,6 +2,7 @@ import duckdb
 import pandas as pd
 import numpy as np
 import os
+from datetime import datetime
 from pymongo import MongoClient
 
 # --- Load data from DuckDB ---
@@ -78,7 +79,6 @@ def momentum_return(data, window=1, lag=1):
     return data
 
 ### Trend
-
 def trend_moving_average(data, window=5):
     data[f"SMA_{window}"] = data["Close"].rolling(window=window).mean()
 
@@ -146,7 +146,6 @@ def trend_macd(data, short_window=12, long_window=26, signal_window=9):
     return data
 
 ### Volume
-
 def volume_accumulation_distribution_index(data, corr_window=14, corr_threshold=0.20):
     close = data["Close"]
     high  = data["High"]
@@ -183,7 +182,6 @@ def volume_accumulation_distribution_index(data, corr_window=14, corr_threshold=
         data = data.set_index("Date")
 
     return data
-
 
 def desperate_vars(df):
     df["HL_PCT"] = (df["High"] - df["Low"]) / df["Close"] * 100.0
@@ -252,6 +250,66 @@ def lt_news_data(ticker):
          
     return sentiment_df
 
+def lt_tech_news():
+    MONGO_DB = "financial_news"
+    MONGO_COLLECTION = "tech_news"
+
+    client = MongoClient("mongodb://localhost:27017/")
+    db = client[MONGO_DB]
+    collection = db[MONGO_COLLECTION]
+
+    # Fetch all documents
+    docs = list(collection.find())
+
+    rows = []
+
+    for item in docs:
+        # Extract publication date (YYYY-MM-DD)
+        if "time_published" not in item:
+            continue
+        try:
+            date = datetime.strptime(item["time_published"][:8], "%Y%m%d").date()
+        except Exception:
+            continue
+
+        # Find Technology topic relevance
+        tech_relevance = 0
+        for t in item.get("topics", []):
+            if t.get("topic", "").lower() == "technology":
+                tech_relevance = float(t.get("relevance_score", 0))
+                break
+
+        # Skip if not tech-related
+        if tech_relevance == 0:
+            continue
+
+        sentiment = item.get("overall_sentiment_score", 0)
+
+        # Weighted contribution
+        rows.append({
+            "date": date,
+            "sentiment": sentiment,
+            "relevance": tech_relevance
+        })
+
+    # Convert to DataFrame
+    df_rows = pd.DataFrame(rows)
+
+    if df_rows.empty:
+        print("No technology-related news found.")
+        return pd.DataFrame(columns=["date", "weighted_tech_sentiment"])
+
+    # Compute weighted daily sentiment
+    weighted_df = (
+        df_rows.groupby("date")
+        .apply(lambda x: (x["sentiment"] * x["relevance"]).sum() / x["relevance"].sum())
+        .reset_index(name="weighted_tech_sentiment")
+    )
+
+    weighted_df.rename(columns={'date': 'Date'}, inplace=True)
+    weighted_df.set_index('Date', inplace=True)
+    return weighted_df
+
 def lt_sec_data(db_path):
     if os.path.exists(db_path):
     
@@ -286,7 +344,7 @@ def lt_fred_daily_data(db_path="./data/fred_daily.duckdb"):
 def create_df(ticker):
     df = load_data(db_path=f"./data/{ticker}_yf.duckdb")
     dp_df = desperate_vars(df)
-    df_tech = join_tch_vars(df)
+    # df_tech = join_tch_vars(df)
 
     sec_10q_df = lt_sec_data(db_path=f"./data/{ticker}_10q.duckdb")
     sec_10k_df = lt_sec_data(db_path=f"./data/{ticker}_10k.duckdb")
@@ -294,6 +352,7 @@ def create_df(ticker):
     sec_df = pd.concat([sec_10q_df, sec_10k_df]).drop_duplicates().sort_index()
 
     news_df = lt_news_data(ticker)
+    tech_news_df = lt_tech_news()
 
     instruments_df = load_data(db_path=f"./data/instruments.duckdb")
 
@@ -307,16 +366,17 @@ def create_df(ticker):
 
     # Merge all dataframes on date
 
-    if not sec_df.empty:
-        data = df.merge(sec_df, how='left', left_index=True, right_index=True)
-    else:
-        data = df.copy()
+    # if not sec_df.empty:
+    #     data = df.merge(sec_df, how='left', left_index=True, right_index=True)
+    # else:
+    data = df.copy()
     data = data.merge(news_df, how='left', left_index=True, right_index=True)
-    data = data.merge(instruments_df, how='left', left_index=True, right_index=True)
-    data = data.merge(d_market_df, how='left', left_index=True, right_index=True)
-    data = data.merge(q_fund_df, how='left', left_index=True, right_index=True)
-    data = data.merge(treasury_df, how='left', left_index=True, right_index=True)
-    data = data.merge(fred_daily_df, how='left', left_index=True, right_index=True)
+    data = data.merge(tech_news_df, how='left', left_index=True, right_index=True)
+    # data = data.merge(instruments_df, how='left', left_index=True, right_index=True)
+    # data = data.merge(d_market_df, how='left', left_index=True, right_index=True)
+    # data = data.merge(q_fund_df, how='left', left_index=True, right_index=True)
+    # data = data.merge(treasury_df, how='left', left_index=True, right_index=True)
+    # data = data.merge(fred_daily_df, how='left', left_index=True, right_index=True)
     data = data.dropna(subset=['Close'])  # Drop rows where target is NaN
     data = data.ffill()
     data = data.dropna(axis=1, how='all')  # Drop columns that are all NaN
@@ -324,12 +384,16 @@ def create_df(ticker):
     #if 'weighted_sentiment' in data.columns:
     #    data = data.dropna(subset=['weighted_sentiment'])
 
-    # df = df.drop(columns=['Open','High','Low','Volume'], errors='ignore')
+    # data = data.drop(columns=['Open','High','Low','Volume'], errors='ignore')
     print(data.shape)
 
     return data
 
+# def cross_corr(a, b, lag=10):
+#     return [np.corrcoef(a[:-i], b[i:])[0, 1] for i in range(1, lag)]
+
 if __name__ == "__main__":
-    ticker = "ORCL"
+    ticker = 'AAPL'
     df = create_df(ticker)
-    print(df.tail())
+    df = df.ffill()
+    print(df.columns)

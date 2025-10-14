@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from feature_engineering import load_data
 import xgboost as xgb
+import duckdb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 
@@ -20,11 +21,24 @@ indice_df.set_index('Date', inplace=True)
 df = pd.concat([indice_df,data], axis=1)
 df = df.dropna()
 
+df.index = pd.to_datetime(df.index, errors='coerce')
+df['year'] = df.index.year
+df['month'] = df.index.month
+df['day'] = df.index.day
+df['dayofweek'] = df.index.dayofweek  # 0 = Monday
+df['quarter'] = df.index.quarter
+df['dayofyear'] = df.index.dayofyear
+
+
+df['target'] = df['Indice'].pct_change().shift(-1)
+df = df.dropna()
+
 target_col = "Indice"
-feature_cols = [col for col in df.columns if col != target_col]
+feature_cols = [col for col in df.columns if col not in ['target','Indice']]
 
 X = df[feature_cols]
 y = df[target_col]
+
 
 # ---------------------------
 # 2. Train/test split
@@ -68,7 +82,17 @@ plt.show()
 # ---------------------------
 # 6. Forecast future values (optional)
 # ---------------------------
-# Example: if you want to predict based on the last row
-last_row = X.iloc[[-1]]
-future_pred = model.predict(last_row)[0]
+con = duckdb.connect("./data/predictions.duckdb")
+df_test = con.execute(f"SELECT * FROM predictions").df()
+con.close()
+df_test.index = pd.to_datetime(df_test.index, errors='coerce')
+df_test['year'] = df_test.index.year
+df_test['month'] = df_test.index.month
+df_test['day'] = df_test.index.day
+df_test['dayofweek'] = df_test.index.dayofweek  # 0 = Monday
+df_test['quarter'] = df_test.index.quarter
+df_test['dayofyear'] = df_test.index.dayofyear
+df_test.columns = feature_cols
+print(df_test)
+future_pred = model.predict(df_test)[0]
 print(f"Predicted Indice for next row: {future_pred:.2f}")
