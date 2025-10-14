@@ -4,7 +4,7 @@ import joblib
 import yfinance as yf
 import matplotlib.pyplot as plt
 import duckdb
-from pmdarima import auto_arima
+# from pmdarima import auto_arima
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
