@@ -21,7 +21,7 @@ duckdb
 tensorflow
 scikit-learn
 xgboost
-pmdarima
+# pmdarima
 
 # MongoDB
 pymongo
