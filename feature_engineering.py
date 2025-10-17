@@ -215,7 +215,7 @@ def lt_news_data(ticker):
     MONGO_DB = "financial_news"
     MONGO_COLLECTION = f"{ticker}_news"
 
-    client = MongoClient(mongo_uri)
+    client = MongoClient("mongodb://localhost:27017/")
     db = client[MONGO_DB]
     collection = db[MONGO_COLLECTION]
 
@@ -256,7 +256,7 @@ def lt_tech_news():
     MONGO_DB = "financial_news"
     MONGO_COLLECTION = "tech_news"
 
-    client = MongoClient(mongo_uri)
+    client = MongoClient("mongodb://localhost:27017/")
     db = client[MONGO_DB]
     collection = db[MONGO_COLLECTION]
 
@@ -346,7 +346,7 @@ def lt_fred_daily_data(db_path="./data/fred_daily.duckdb"):
 def create_df(ticker):
     df = load_data(db_path=f"./data/{ticker}_yf.duckdb")
     dp_df = desperate_vars(df)
-    # df_tech = join_tch_vars(df)
+    df_tech = join_tch_vars(df)
 
     sec_10q_df = lt_sec_data(db_path=f"./data/{ticker}_10q.duckdb")
     sec_10k_df = lt_sec_data(db_path=f"./data/{ticker}_10k.duckdb")
@@ -368,18 +368,19 @@ def create_df(ticker):
 
     # Merge all dataframes on date
 
-    # if not sec_df.empty:
-    #     data = df.merge(sec_df, how='left', left_index=True, right_index=True)
-    # else:
-    data = df.copy()
+    if not sec_df.empty:
+        data = df.merge(sec_df, how='left', left_index=True, right_index=True)
+    else:
+        data = df.copy()
     data = data.merge(news_df, how='left', left_index=True, right_index=True)
     data = data.merge(tech_news_df, how='left', left_index=True, right_index=True)
-    # data = data.merge(instruments_df, how='left', left_index=True, right_index=True)
-    # data = data.merge(d_market_df, how='left', left_index=True, right_index=True)
-    # data = data.merge(q_fund_df, how='left', left_index=True, right_index=True)
-    # data = data.merge(treasury_df, how='left', left_index=True, right_index=True)
-    # data = data.merge(fred_daily_df, how='left', left_index=True, right_index=True)
-    data = data.dropna(subset=['Close'])  # Drop rows where target is NaN
+    data = data.merge(instruments_df, how='left', left_index=True, right_index=True)
+    data = data.merge(d_market_df, how='left', left_index=True, right_index=True)
+    data = data.merge(q_fund_df, how='left', left_index=True, right_index=True)
+    data = data.merge(treasury_df, how='left', left_index=True, right_index=True)
+    data = data.merge(fred_daily_df, how='left', left_index=True, right_index=True)
+    data['returns'] = data['Close'].pct_change()
+    data = data.dropna(subset=['returns'])  # Drop rows where target is NaN
     data = data.ffill()
     data = data.dropna(axis=1, how='all')  # Drop columns that are all NaN
 

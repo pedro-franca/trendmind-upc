@@ -51,7 +51,7 @@ def export_news_to_mongodb(ticker):
         json_data = [json_data]
     
     # Connect to MongoDB (make sure MongoDB is running and accessible)
-    client = MongoClient(mongo_uri)
+    client = MongoClient("mongodb://localhost:27017/")
     db = client[MONGO_DB]
     collection = db[MONGO_COLLECTION]
 
@@ -60,5 +60,5 @@ def export_news_to_mongodb(ticker):
 
 
 if __name__ == "__main__":
-    for ticker in ["AAPL", "GOOG", "MSFT", "TSM", "AVGO", "META", "NVDA", "ORCL", "TCEHY"]:
-        export_news_to_mongodb(ticker)
+    #  for ticker in ["AAPL", "GOOG", "MSFT", "TSM", "AVGO", "META", "NVDA", "ORCL", "TCEHY"]:
+     export_news_to_mongodb("tech_sept")

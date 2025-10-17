@@ -21,13 +21,13 @@ indice_df.set_index('Date', inplace=True)
 df = pd.concat([indice_df,data], axis=1)
 df = df.dropna()
 
-df.index = pd.to_datetime(df.index, errors='coerce')
-df['year'] = df.index.year
-df['month'] = df.index.month
-df['day'] = df.index.day
-df['dayofweek'] = df.index.dayofweek  # 0 = Monday
-df['quarter'] = df.index.quarter
-df['dayofyear'] = df.index.dayofyear
+# df.index = pd.to_datetime(df.index, errors='coerce')
+# df['year'] = df.index.year
+# df['month'] = df.index.month
+# df['day'] = df.index.day
+# df['dayofweek'] = df.index.dayofweek  # 0 = Monday
+# df['quarter'] = df.index.quarter
+# df['dayofyear'] = df.index.dayofyear
 
 
 df['target'] = df['Indice'].pct_change().shift(-1)
@@ -85,13 +85,13 @@ plt.show()
 con = duckdb.connect("./data/predictions.duckdb")
 df_test = con.execute(f"SELECT * FROM predictions").df()
 con.close()
-df_test.index = pd.to_datetime(df_test.index, errors='coerce')
-df_test['year'] = df_test.index.year
-df_test['month'] = df_test.index.month
-df_test['day'] = df_test.index.day
-df_test['dayofweek'] = df_test.index.dayofweek  # 0 = Monday
-df_test['quarter'] = df_test.index.quarter
-df_test['dayofyear'] = df_test.index.dayofyear
+# df_test.index = pd.to_datetime(df_test.index, errors='coerce')
+# df_test['year'] = df_test.index.year
+# df_test['month'] = df_test.index.month
+# df_test['day'] = df_test.index.day
+# df_test['dayofweek'] = df_test.index.dayofweek  # 0 = Monday
+# df_test['quarter'] = df_test.index.quarter
+# df_test['dayofyear'] = df_test.index.dayofyear
 df_test.columns = feature_cols
 print(df_test)
 future_pred = model.predict(df_test)[0]
