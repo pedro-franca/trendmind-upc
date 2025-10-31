@@ -110,12 +110,39 @@ if ticker:
 
         st.subheader("📊 Last Day's OHLCV Data")
 
-        col1, col2, col3, col4, col5 = st.columns(5)
-        col1.metric("Open", f"${open:,.2f}")
-        col2.metric("High", f"${high:,.2f}")
-        col3.metric("Low", f"${low:,.2f}")
-        col4.metric("Close", f"${close:,.2f}")
-        col5.metric("Volume", f"{volume:,.0f}")
+        st.markdown("### 📊 Last Day's OHLCV Data")
+        st.markdown("""
+        <style>
+        .ohlcv-card {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .metric-label {
+            color: #555;
+            font-size: 0.9rem;
+        }
+        .metric-value {
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        ohlcv_html = f"""
+        <div class='ohlcv-card'>
+            <div class='metric-label'>Open</div><div class='metric-value'>${open:,.2f}</div>
+            <div class='metric-label'>High</div><div class='metric-value'>${high:,.2f}</div>
+            <div class='metric-label'>Low</div><div class='metric-value'>${low:,.2f}</div>
+            <div class='metric-label'>Close</div><div class='metric-value'>${close:,.2f}</div>
+            <div class='metric-label'>Volume</div><div class='metric-value'>{volume:,.0f}</div>
+        </div>
+        """
+
+        st.markdown(ohlcv_html, unsafe_allow_html=True)
+
 
         cutoff_date = datetime(2025, 8, 25).strftime("%Y-%m-%d")
         news_data = fetch_latest_news(
