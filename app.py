@@ -108,6 +108,8 @@ if ticker:
         fig.add_hline(y=0, line_dash="dash", line_color="gray")
         st.plotly_chart(fig, use_container_width=True)
 
+        st.divider()
+        
         st.subheader("📊 Last Day's OHLCV Data")
 
         col1, col2, col3, col4, col5 = st.columns(5)
@@ -117,7 +119,7 @@ if ticker:
         col4.metric("Close", f"${close:,.2f}")
         col5.metric("Volume", f"{volume:,.0f}")
 
-        st.markdown("---",)
+        st.divider()
 
         cutoff_date = datetime(2025, 8, 25).strftime("%Y-%m-%d")
         news_data = fetch_latest_news(
