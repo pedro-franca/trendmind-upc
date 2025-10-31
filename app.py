@@ -108,12 +108,14 @@ if ticker:
         fig.add_hline(y=0, line_dash="dash", line_color="gray")
         st.plotly_chart(fig, use_container_width=True)
 
-        st.subheader("Last day's OHLCV data")
-        st.write(f"Open: {open}")
-        st.write(f"High: {high}")
-        st.write(f"Low: {low}")
-        st.write(f"Close: {close}")
-        st.write(f"Volume: {volume}")
+        st.subheader("📊 Last Day's OHLCV Data")
+
+        col1, col2, col3, col4, col5 = st.columns(5)
+        col1.metric("Open", f"${open:,.2f}")
+        col2.metric("High", f"${high:,.2f}")
+        col3.metric("Low", f"${low:,.2f}")
+        col4.metric("Close", f"${close:,.2f}")
+        col5.metric("Volume", f"{volume:,.0f}")
 
         cutoff_date = datetime(2025, 8, 25).strftime("%Y-%m-%d")
         news_data = fetch_latest_news(
@@ -139,7 +141,7 @@ if ticker:
             ])
 
             # Display nicely
-            st.subheader(f"📰 Latest {ticker.upper()} News (≤ {cutoff_date})")
+            st.subheader(f"📰 Latest {ticker.upper()} News")
             for _, row in df.iterrows():
                 st.markdown(f"### [{row['Title']}]({row['URL']})")
                 st.markdown(
