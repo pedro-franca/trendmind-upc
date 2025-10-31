@@ -146,7 +146,7 @@ for ticker in ["AAPL", "GOOG", "MSFT", "TSM", "AVGO", "META", "NVDA", "ORCL", "T
     plt.title(f'{ticker} Stock Returns Prediction')
     plt.legend()
     # plt.savefig(f'data/prediction_returns_4_{ticker}.png')
-    # plt.show()
+    plt.show()
 
 # metrics_df = pd.DataFrame(metrics_results)
 # metrics_df.to_csv('metrics_iter3.csv', index=False)

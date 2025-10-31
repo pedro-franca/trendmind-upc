@@ -62,10 +62,12 @@ if ticker:
 
         # ---------- DISPLAY PREDICTION ----------
         # Generate future dates (same as before)
-        future_dates = pd.date_range(start=df.index[-1] + pd.Timedelta(days=1), 
+        future_dates = pd.date_range(start=df.index[-1] + pd.tseries.offsets.BDay(1), 
                              periods=len(forecast_df), freq="D")
 
         fig.add_scatter(x=future_dates, y=predicted_price, mode='markers+lines', name='Predicted Price', marker=dict(symbol='star', size=10, color='red'))
+        # add horizontal line at y=0
+        fig.add_hline(y=0, line_dash="dash", line_color="gray")
         st.plotly_chart(fig, use_container_width=True)
 
     except FileNotFoundError:
