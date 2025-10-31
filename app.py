@@ -120,6 +120,7 @@ if ticker:
         col5.metric("Volume", f"{volume:,.0f}")
 
         st.divider()
+        st.markdown("### ") 
 
         cutoff_date = datetime(2025, 8, 25).strftime("%Y-%m-%d")
         news_data = fetch_latest_news(
