@@ -47,7 +47,7 @@ if ticker:
     df = df[cols]
 
     # ---------- PLOT PRICE HISTORY ----------
-    fig = px.line(df, x=df.index[-50:], y=df["Returns"].values[-50:], title=f"{ticker} Returns")
+    fig = px.line(df, x=df.index[-50:], y=df["returns"].values[-50:], title=f"{ticker} Returns")
     fig.update_layout(xaxis_title="Date", yaxis_title="Price Returns")
 
     # ---------- LOAD MODEL ----------
