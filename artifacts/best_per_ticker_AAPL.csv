@@ -1,0 +1,2 @@
+ticker,fs_method,top_k,n_past,activation,DIR_ACC,MAE,RMSE,n_features,features
+AAPL,corr,10,40,selu,1.0,8.367651679885846e-05,8.367651679885846e-05,11,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'ADI', '%K_14', 'RSI_14', 'MACD(12,26,9)', '%D', 'pe', 'evebitda_x', 'pb', 'evebit_x']"

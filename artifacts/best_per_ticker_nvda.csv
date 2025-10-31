@@ -1,0 +1,2 @@
+ticker,fs_method,top_k,n_past,activation,DIR_ACC,MAE,RMSE,n_features
+NVDA,rf,3,60,tanh,1.0,0.00012776986821116942,0.00012776986821116942,4

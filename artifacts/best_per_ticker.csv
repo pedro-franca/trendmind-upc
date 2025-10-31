@@ -1,0 +1,9 @@
+ticker,fs_method,top_k,n_past,activation,DIR_ACC,MAE,RMSE,n_features,features
+AVGO,corr,3,10,relu,1.0,0.0005197016463684978,0.0005197016463684978,4,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'ADI', '%K_14']"
+GOOG,mi,5,60,relu,1.0,0.0006767062799786228,0.0006767062799786228,6,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'Income Tax Expense', 'crude_oil', '%K_14', 'ADI']"
+META,corr,10,40,tanh,1.0,2.1056170829147902e-05,2.1056170829147902e-05,11,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'ADI', '%K_14', 'RSI_14', 'MACD(12,26,9)', 'Volume', 'SMA(10,50)', '%D', 'DGS10', 'DAAA']"
+MSFT,corr,5,20,selu,1.0,0.0003584317891844879,0.0003584317891844879,6,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'ADI', '%K_14', 'MACD(12,26,9)', 'RSI_14']"
+NVDA,corr,10,40,selu,1.0,3.8600388304610433e-05,3.8600388304610433e-05,11,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'ADI', '%K_14', 'RSI_14', 'MACD(12,26,9)', '%D', 'weighted_sentiment', 'term_spread', 'crude_oil', 'commodity_index']"
+ORCL,mi,10,40,relu,1.0,0.00030788725238550807,0.00030788725238550807,11,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'HL_PCT', '%K_14', 'ADI', 'Volume', 'Close_lag1', 'Close', 'SMA_5', 'spread_baa_10y', 'evebitda_x']"
+TCEHY,corr,5,20,tanh,1.0,0.0003215916177641276,0.0003215916177641276,6,"['returns', 'PCT_change', 'weighted_tech_sentiment', '%K_14', 'RSI_14', 'ADI', 'MACD(12,26,9)']"
+TSM,rf,5,40,relu,1.0,6.222356311313959e-06,6.222356311313959e-06,6,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'Volume', '%K_14', 'HL_PCT', 'RSI_14']"

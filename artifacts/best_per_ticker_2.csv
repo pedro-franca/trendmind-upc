@@ -1,0 +1,10 @@
+ticker,fs_method,top_k,n_past,activation,DIR_ACC,MAE,RMSE,n_features,features
+AAPL,corr,10,60,relu,1.0,5.7523349089150244e-05,5.7523349089150244e-05,11,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'ADI', '%K_14', 'RSI_14', 'MACD(12,26,9)', '%D', 'pe', 'evebitda_x', 'pb', 'evebit_x']"
+AVGO,manual,3,60,relu,1.0,5.0637213319992824e-05,5.0637213319992824e-05,2,"['returns', 'PCT_change', 'weighted_tech_sentiment']"
+GOOG,corr,3,40,relu,1.0,0.002311670374705921,0.002311670374705921,4,"['returns', 'PCT_change', 'weighted_tech_sentiment', '%K_14', 'ADI']"
+META,rf,10,40,tanh,1.0,4.743585244515458e-05,4.743585244515458e-05,11,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'Volume', 'HL_PCT', '%K_14', 'RSI_14', 'Close_lag1', '%D', 'Return_lag1', 'commodity_index', 'SMA(10,50)']"
+MSFT,manual,3,40,tanh,1.0,3.1205854365001784e-06,3.1205854365001784e-06,2,"['returns', 'PCT_change', 'weighted_tech_sentiment']"
+NVDA,corr,3,40,tanh,1.0,0.00012706140862284165,0.00012706140862284165,4,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'ADI', '%K_14']"
+ORCL,rf,5,60,relu,1.0,0.0010715449042965064,0.0010715449042965064,6,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'Volume', 'HL_PCT', 'Close_lag1', 'RSI_14']"
+TCEHY,manual,3,10,relu,1.0,6.637035846601691e-05,6.637035846601691e-05,2,"['returns', 'PCT_change', 'weighted_tech_sentiment']"
+TSM,mi,5,20,selu,1.0,9.075067544794813e-05,9.075067544794813e-05,6,"['returns', 'PCT_change', 'weighted_tech_sentiment', '%K_14', 'Volume', 'HL_PCT', 'ADI']"

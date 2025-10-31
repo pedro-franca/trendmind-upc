@@ -44,7 +44,7 @@ def fetch_instruments():
     df = pd.DataFrame()
     tickers = ["CL=F", "GLD", "^BCOM", "DX-Y.NYB"]
     for ticker in tickers:
-        data = yf.download(ticker, start="2020-01-01", end="2023-08-25", interval="1d")
+        data = yf.download(ticker, start="2020-01-01", end="2025-10-17", interval="1d")
         data = data.droplevel('Ticker', axis=1)[['Close']]
         data.rename(columns={'Close': ticker}, inplace=True)
         df = pd.concat([df, data], axis=1)
@@ -61,7 +61,7 @@ def fetch_treasury_yields():
     df = pd.DataFrame()
     tickers = ["^TNX", "^IRX", "^FVX", "^TYX"]  # 10-year, 3-month, 5-year, and 30-year treasury yield
     for ticker in tickers:
-        data = yf.download(ticker, start="2020-01-01", end="2023-08-25", interval="1d")
+        data = yf.download(ticker, start="2020-01-01", end="2025-10-20", interval="1d")
         data = data.droplevel('Ticker', axis=1)[['Close']]
         data.rename(columns={'Close': ticker}, inplace=True)
         df = pd.concat([df, data], axis=1)
@@ -73,7 +73,7 @@ def fetch_treasury_yields():
 
     print(f"✅ Exported {len(df)} rows to {DELTA_OUTPUT_PATH}")
 
-def fetch_fred_daily(start="2020-01-01", end="2025-08-23", retries=4):
+def fetch_fred_daily(start="2020-01-01", end="2025-10-20", retries=4):
     BASE_URL = "https://api.stlouisfed.org/fred/series/observations"
     data = pd.DataFrame()
     for series_id in ["DBAA", "DAAA","DGS10"]:
@@ -222,3 +222,6 @@ def get_daily_market_data(ticker: str, since="2000-01-01"):
 
         print(f"✅ Exported {len(df)} rows to {DELTA_OUTPUT_PATH}")
 
+if __name__ == "__main__":
+    fetch_treasury_yields()
+    # fetch_fred_daily()

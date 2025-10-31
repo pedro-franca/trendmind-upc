@@ -215,7 +215,7 @@ def lt_news_data(ticker):
     MONGO_DB = "financial_news"
     MONGO_COLLECTION = f"{ticker}_news"
 
-    client = MongoClient("mongodb://localhost:27017/")
+    client = MongoClient(mongo_uri)
     db = client[MONGO_DB]
     collection = db[MONGO_COLLECTION]
 
@@ -252,11 +252,11 @@ def lt_news_data(ticker):
          
     return sentiment_df
 
-def lt_tech_news():
+def lt_tech_news(collection_name="tech_news"):
     MONGO_DB = "financial_news"
-    MONGO_COLLECTION = "tech_news"
+    MONGO_COLLECTION = collection_name
 
-    client = MongoClient("mongodb://localhost:27017/")
+    client = MongoClient(mongo_uri)
     db = client[MONGO_DB]
     collection = db[MONGO_COLLECTION]
 
@@ -396,7 +396,9 @@ def create_df(ticker):
 #     return [np.corrcoef(a[:-i], b[i:])[0, 1] for i in range(1, lag)]
 
 if __name__ == "__main__":
-    ticker = 'AAPL'
-    df = create_df(ticker)
-    df = df.ffill()
-    print(df.columns)
+    tech_news_df = lt_tech_news()
+    print(tech_news_df.describe())
+    print(tech_news_df.head())
+    print(tech_news_df.tail())
+    print(tech_news_df.isna().sum())
+    

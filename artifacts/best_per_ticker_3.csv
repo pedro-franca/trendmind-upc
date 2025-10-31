@@ -1,0 +1,10 @@
+ticker,fs_method,top_k,n_past,activation,MAE,RMSE,MAPE,n_features,features
+AAPL,mi,10,40,tanh,0.010094433470241838,0.01436944229836158,119.63410586612335,11,"['returns', 'PCT_change', 'weighted_tech_sentiment', '%K_14', 'HL_PCT', 'ADI', 'Volume', 'commodity_index', '%D', 'ev_y', 'grossmargin', 'assetsnc']"
+AVGO,corr,10,10,selu,0.01983286985400975,0.030946296432858185,198.17854356720025,11,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'ADI', '%K_14', 'MACD(12,26,9)', 'RSI_14', '%D', 'Volume', 'SMA(50,200)', 'crude_oil', 'commodity_index']"
+GOOG,rf,5,60,tanh,0.011988147644707415,0.01896570810242486,256.27800697804776,6,"['returns', 'PCT_change', 'weighted_tech_sentiment', '%K_14', 'crude_oil', 'gold', 'Return_lag1']"
+META,rf,5,40,selu,0.010556023896648692,0.012837182200581039,185.65848360201406,6,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'Volume', 'HL_PCT', '%K_14', 'RSI_14']"
+MSFT,corr,10,10,selu,0.007172860459709569,0.009326676140569996,136.0618209019919,11,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'ADI', '%K_14', 'MACD(12,26,9)', 'RSI_14', '%D', 'pb', 'HL_PCT', 'pe', 'evebitda_x']"
+NVDA,corr,5,20,selu,0.01557036315590494,0.020411370947088798,220.95471012025544,6,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'ADI', '%K_14', 'RSI_14', 'MACD(12,26,9)']"
+ORCL,mi,3,20,selu,0.033154130985781585,0.06416821117089164,158.14222604307383,4,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'HL_PCT', '%K_14']"
+TCEHY,mi,10,40,relu,0.011354315689846718,0.015397093228063194,158.64684994960646,11,"['returns', 'PCT_change', 'weighted_tech_sentiment', '%K_14', 'Volume', '%D', 'Close_lag1', 'Close', 'ADI', 'gold', 'SMA_5', 'HL_PCT']"
+TSM,mi,3,10,relu,0.018848898076783225,0.024515683015511575,132.49232454142444,4,"['returns', 'PCT_change', 'weighted_tech_sentiment', '%K_14', 'Volume']"

@@ -60,5 +60,5 @@ def export_news_to_mongodb(ticker):
 
 
 if __name__ == "__main__":
-    #  for ticker in ["AAPL", "GOOG", "MSFT", "TSM", "AVGO", "META", "NVDA", "ORCL", "TCEHY"]:
-     export_news_to_mongodb("tech_sept")
+    # export_to_duckdb(delta_path="./data/fred_daily", output_path="./data/fred_daily.duckdb")
+    export_to_duckdb(delta_path="./data/treasury_yields", output_path="./data/treasury_yields.duckdb")

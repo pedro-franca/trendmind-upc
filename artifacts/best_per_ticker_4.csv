@@ -1,0 +1,10 @@
+ticker,fs_method,top_k,n_past,activation,DIR_ACC,MAE,RMSE,MAPE,n_features,features
+AAPL,rf,3,10,tanh,68.42105263157895,0.010598422709970757,0.015211926441780387,108.03291470071655,4,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'Volume', 'Return_lag1']"
+AVGO,mi,5,10,selu,73.68421052631578,0.020162905767795298,0.032204822728178574,192.77647309599277,6,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'ADI', 'HL_PCT', '%K_14', 'Volume']"
+GOOG,rf,10,20,relu,65.78947368421053,0.011978893075093656,0.019618477066160003,114.93667560946051,11,"['returns', 'PCT_change', 'weighted_tech_sentiment', '%K_14', 'crude_oil', 'gold', 'Return_lag1', 'commodity_index', 'Close', '%D', 'default_spread', 'usd_index']"
+META,manual,3,40,selu,63.1578947368421,0.01041761865344297,0.013055276494353518,130.6618387333782,2,"['returns', 'PCT_change', 'weighted_tech_sentiment']"
+MSFT,rf,10,20,tanh,65.78947368421053,0.007942913533658625,0.010675128727296502,136.20677311094133,11,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'Volume', 'HL_PCT', 'Close_lag1', '%K_14', '3m', 'RSI_14', 'commodity_index', 'Return_lag1', 'crude_oil']"
+NVDA,mi,10,10,tanh,68.42105263157895,0.015135088193840532,0.020834065488065878,125.26658292980109,11,"['returns', 'PCT_change', 'weighted_tech_sentiment', '%K_14', 'ADI', 'HL_PCT', 'pe', 'evebitda_x', 'evebit_x', 'Close_lag1', 'Volume', 'Close']"
+ORCL,mi,10,10,relu,65.78947368421053,0.0332805713176804,0.06598618350505994,137.03714486649042,11,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'HL_PCT', '%K_14', 'ADI', 'Volume', 'Close_lag1', '3m', 'Close', 'SMA_5', 'spread_baa_10y']"
+TCEHY,corr,5,60,relu,76.31578947368422,0.014102348496943895,0.018403436900447778,438.10413016278716,6,"['returns', 'PCT_change', 'weighted_tech_sentiment', '%K_14', 'RSI_14', 'ADI', 'MACD(12,26,9)']"
+TSM,corr,10,60,tanh,65.78947368421053,0.01930518949045186,0.025363288114129603,102.3303451413637,11,"['returns', 'PCT_change', 'weighted_tech_sentiment', 'ADI', '%K_14', 'RSI_14', 'MACD(12,26,9)', 'Volume', '%D', 'debtc', 'term_spread', 'commodity_index']"
