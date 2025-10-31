@@ -47,8 +47,8 @@ if ticker:
     df = df[cols]
 
     # ---------- PLOT PRICE HISTORY ----------
-    fig = px.line(df, x=df.index[-50:], y=df["Close"].values[-50:], title=f"{ticker} Closing Prices")
-    fig.update_layout(xaxis_title="Date", yaxis_title="Price")
+    fig = px.line(df, x=df.index[-50:], y=df["Returns"].values[-50:], title=f"{ticker} Returns")
+    fig.update_layout(xaxis_title="Date", yaxis_title="Price Returns")
 
     # ---------- LOAD MODEL ----------
     model = keras.models.load_model(f"artifacts/best_model_{ticker}_4.keras", custom_objects={'combined_loss': combined_loss})
@@ -57,7 +57,7 @@ if ticker:
         # ---------- PREPARE INPUT ----------
         scaler = joblib.load(f'artifacts/best_scaler_{ticker}_4.joblib')
         scaled_data = scaler.fit_transform(df)
-        forecast_df = forecast_future(model, df, scaler, feature_columns=['Close', 'PCT_change','weighted_tech_sentiment'], n_future=1, n_past=days_past[ticker])
+        forecast_df = forecast_future(model, df, scaler, feature_columns=cols, n_future=1, n_past=days_past[ticker])
         predicted_price = forecast_df["Predicted_returns"]
 
         # ---------- DISPLAY PREDICTION ----------
